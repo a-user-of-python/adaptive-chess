@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Zoomable visual explorer for the profile's neural network (769 → 128 → 32 → 1).
+// Zoomable visual explorer for the profile's neural network (769 → 256 → 128 → 1).
 // Neurons are circles connected by lines; pinch to zoom and everything
 // (circles, lines, text) scales together. Tap a neuron for its weights.
 // The bottom meter shows how much the weights moved in the last game.
@@ -83,7 +83,7 @@ struct NetworkView: View {
                 VStack(spacing: 6) {
                     Text(String(format: "%.6f", change))
                         .font(.system(.title2, design: .monospaced).bold())
-                    Text("\(store.lastChangedWeightCount) of 102,656 weights moved")
+                    Text("\(store.lastChangedWeightCount) of 230,145 weights moved")
                         .font(.callout)
                         .foregroundColor(.secondary)
                     GeometryReader { geo in
@@ -128,10 +128,10 @@ private enum NetworkLayout {
     // Grid configs: (columns, cell size)
     static let inputCols = 24
     static let inputCell: CGFloat = 26
-    static let hidden1Cols = 8
-    static let hidden1Cell: CGFloat = 44
-    static let hidden2Cols = 4
-    static let hidden2Cell: CGFloat = 56
+    static let hidden1Cols = 16
+    static let hidden1Cell: CGFloat = 36
+    static let hidden2Cell: CGFloat = 44
+    static let hidden2Cell: CGFloat = 44
     static let outputDiameter: CGFloat = 90
 
     static let topMargin: CGFloat = 80
@@ -179,7 +179,7 @@ private enum NetworkLayout {
     static func hitTest(_ point: CGPoint) -> NeuronSelection? {
         // Check smallest layers first (they're on top visually)
         let checks: [(NeuronSelection.Layer, Int)] = [
-            (.output, 1), (.hidden2, 32), (.hidden1, 128), (.input, 769),
+            (.output, 1), (.hidden2, 128), (.hidden1, 256), (.input, 769),
         ]
         for (layer, count) in checks {
             let r = radius(layer: layer)
@@ -206,8 +206,8 @@ private struct NetworkCanvas: View {
         Canvas { context, size in
             drawConnections(context: &context)
             drawLayer(context: &context, layer: .input, count: 769, biases: nil)
-            drawLayer(context: &context, layer: .hidden1, count: 128, biases: weights.b1)
-            drawLayer(context: &context, layer: .hidden2, count: 32, biases: weights.b2)
+            drawLayer(context: &context, layer: .hidden1, count: 256, biases: weights.b1)
+            drawLayer(context: &context, layer: .hidden2, count: 128, biases: weights.b2)
             drawLayer(context: &context, layer: .output, count: 1, biases: weights.b3)
             drawLabels(context: &context)
         }
@@ -224,7 +224,7 @@ private struct NetworkCanvas: View {
     private func drawConnections(context: inout GraphicsContext) {
         // Output layer: all 32 connections
         let outP = NetworkLayout.position(layer: .output, index: 0)
-        for i in 0..<32 {
+        for i in 0..<128 {
             let p = NetworkLayout.position(layer: .hidden2, index: i)
             let w = weights.w3[i]
             var path = Path()
@@ -233,11 +233,11 @@ private struct NetworkCanvas: View {
             context.stroke(path, with: .color(connectionColor(w).opacity(0.7)), lineWidth: 2)
         }
         // Hidden1 -> Hidden2: all 4096, very faint
-        for j in 0..<32 {
+        for j in 0..<128 {
             let dst = NetworkLayout.position(layer: .hidden2, index: j)
-            for i in 0..<128 {
+            for i in 0..<256 {
                 let src = NetworkLayout.position(layer: .hidden1, index: i)
-                let w = weights.w2[j * 128 + i]
+                let w = weights.w2[j * 256 + i]
                 if abs(w) < 0.02 { continue }
                 var path = Path()
                 path.move(to: src)
@@ -248,7 +248,7 @@ private struct NetworkCanvas: View {
         // Input -> Hidden1: only the strongest ~1500 connections to avoid clutter
         var strongest: [(w: Float, src: Int, dst: Int)] = []
         strongest.reserveCapacity(2000)
-        for j in 0..<128 {
+        for j in 0..<256 {
             for i in 0..<769 {
                 let w = weights.w1[j * 769 + i]
                 if abs(w) > 0.15 {
@@ -291,17 +291,16 @@ private struct NetworkCanvas: View {
     }
 
     private func neuronColor(bias: Float) -> Color {
-        let v = Double(bias)
-        if abs(v) < 0.05 { return Color(.systemGray5) }
-        return v > 0 ? Color.blue.opacity(min(0.8, 0.3 + abs(v) * 0.4))
-                     : Color.orange.opacity(min(0.8, 0.3 + abs(v) * 0.4))
+        // All neurons fire on every evaluation — color is decorative by layer,
+        // not an "active/inactive" indicator. Tap a neuron to see its weights.
+        Color.blue.opacity(0.35)
     }
 
     private func drawLabels(context: inout GraphicsContext) {
         let labels: [(String, CGFloat)] = [
             ("Input · 769", NetworkLayout.inputX),
-            ("Hidden 1 · 128", NetworkLayout.hidden1X),
-            ("Hidden 2 · 32", NetworkLayout.hidden2X),
+            ("Hidden 1 · 256", NetworkLayout.hidden1X),
+            ("Hidden 2 · 128", NetworkLayout.hidden2X),
             ("Output · 1", NetworkLayout.outputX),
         ]
         for (text, x) in labels {
@@ -427,8 +426,8 @@ private struct NeuronDetailView: View {
             let start = selection.index * 769
             raw = Array(w.w1[start..<(start + 769)])
         case .hidden2:
-            let start = selection.index * 128
-            raw = Array(w.w2[start..<(start + 128)])
+            let start = selection.index * 256
+            raw = Array(w.w2[start..<(start + 256)])
         case .output:
             raw = w.w3
         case .input:

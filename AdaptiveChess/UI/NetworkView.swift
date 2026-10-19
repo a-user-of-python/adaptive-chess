@@ -83,7 +83,7 @@ struct NetworkView: View {
                 VStack(spacing: 6) {
                     Text(String(format: "%.6f", change))
                         .font(.system(.title2, design: .monospaced).bold())
-                    Text("\(store.lastChangedWeightCount) of 525,825 weights moved")
+                    Text("\(store.lastChangedWeightCount) of 568,833 weights moved")
                         .font(.callout)
                         .foregroundColor(.secondary)
                     GeometryReader { geo in
@@ -120,10 +120,13 @@ struct NetworkView: View {
 
 private enum NetworkLayout {
     // Column X centers
-    static let inputX: CGFloat = 320
-    static let hidden1X: CGFloat = 900
-    static let hidden2X: CGFloat = 1320
-    static let outputX: CGFloat = 1600
+    static let inputX: CGFloat = 280
+    static let hidden1X: CGFloat = 750
+    static let hidden2X: CGFloat = 1150
+    static let hidden3X: CGFloat = 1480
+    static let hidden4X: CGFloat = 1750
+    static let hidden5X: CGFloat = 1980
+    static let outputX: CGFloat = 2180
 
     // Grid configs: (columns, cell size)
     static let inputCols = 24
@@ -132,10 +135,16 @@ private enum NetworkLayout {
     static let hidden1Cell: CGFloat = 30
     static let hidden2Cols = 16
     static let hidden2Cell: CGFloat = 36
+    static let hidden3Cols = 12
+    static let hidden3Cell: CGFloat = 40
+    static let hidden4Cols = 8
+    static let hidden4Cell: CGFloat = 48
+    static let hidden5Cols = 8
+    static let hidden5Cell: CGFloat = 52
     static let outputDiameter: CGFloat = 90
 
     static let topMargin: CGFloat = 80
-    static let canvasWidth: CGFloat = 1800
+    static let canvasWidth: CGFloat = 2400
     static let canvasHeight: CGFloat = 1700
 
     static func position(layer: NeuronSelection.Layer, index: Int) -> CGPoint {
@@ -159,10 +168,31 @@ private enum NetworkLayout {
             let col = index % hidden2Cols
             let gridW = CGFloat(hidden2Cols) * hidden2Cell
             let x = hidden2X - gridW / 2 + CGFloat(col) * hidden2Cell + hidden2Cell / 2
-            let y = topMargin + 280 + CGFloat(row) * hidden2Cell + hidden2Cell / 2
+            let y = topMargin + 160 + CGFloat(row) * hidden2Cell + hidden2Cell / 2
+            return CGPoint(x: x, y: y)
+        case .hidden3:
+            let row = index / hidden3Cols
+            let col = index % hidden3Cols
+            let gridW = CGFloat(hidden3Cols) * hidden3Cell
+            let x = hidden3X - gridW / 2 + CGFloat(col) * hidden3Cell + hidden3Cell / 2
+            let y = topMargin + 240 + CGFloat(row) * hidden3Cell + hidden3Cell / 2
+            return CGPoint(x: x, y: y)
+        case .hidden4:
+            let row = index / hidden4Cols
+            let col = index % hidden4Cols
+            let gridW = CGFloat(hidden4Cols) * hidden4Cell
+            let x = hidden4X - gridW / 2 + CGFloat(col) * hidden4Cell + hidden4Cell / 2
+            let y = topMargin + 300 + CGFloat(row) * hidden4Cell + hidden4Cell / 2
+            return CGPoint(x: x, y: y)
+        case .hidden5:
+            let row = index / hidden5Cols
+            let col = index % hidden5Cols
+            let gridW = CGFloat(hidden5Cols) * hidden5Cell
+            let x = hidden5X - gridW / 2 + CGFloat(col) * hidden5Cell + hidden5Cell / 2
+            let y = topMargin + 360 + CGFloat(row) * hidden5Cell + hidden5Cell / 2
             return CGPoint(x: x, y: y)
         case .output:
-            return CGPoint(x: outputX, y: topMargin + 480)
+            return CGPoint(x: outputX, y: topMargin + 440)
         }
     }
 
@@ -171,6 +201,9 @@ private enum NetworkLayout {
         case .input: return inputCell / 2 - 2
         case .hidden1: return hidden1Cell / 2 - 3
         case .hidden2: return hidden2Cell / 2 - 4
+        case .hidden3: return hidden3Cell / 2 - 4
+        case .hidden4: return hidden4Cell / 2 - 5
+        case .hidden5: return hidden5Cell / 2 - 5
         case .output: return outputDiameter / 2
         }
     }
@@ -179,7 +212,7 @@ private enum NetworkLayout {
     static func hitTest(_ point: CGPoint) -> NeuronSelection? {
         // Check smallest layers first (they're on top visually)
         let checks: [(NeuronSelection.Layer, Int)] = [
-            (.output, 1), (.hidden2, 256), (.hidden1, 512), (.input, 769),
+            (.output, 1), (.hidden5, 32), (.hidden4, 64), (.hidden3, 128), (.hidden2, 256), (.hidden1, 512), (.input, 769),
         ]
         for (layer, count) in checks {
             let r = radius(layer: layer)
@@ -208,7 +241,10 @@ private struct NetworkCanvas: View {
             drawLayer(context: &context, layer: .input, count: 769, biases: nil)
             drawLayer(context: &context, layer: .hidden1, count: 512, biases: weights.b1)
             drawLayer(context: &context, layer: .hidden2, count: 256, biases: weights.b2)
-            drawLayer(context: &context, layer: .output, count: 1, biases: weights.b3)
+            drawLayer(context: &context, layer: .hidden3, count: 128, biases: weights.b3)
+            drawLayer(context: &context, layer: .hidden4, count: 64, biases: weights.b4)
+            drawLayer(context: &context, layer: .hidden5, count: 32, biases: weights.b5)
+            drawLayer(context: &context, layer: .output, count: 1, biases: weights.b6)
             drawLabels(context: &context)
         }
         .frame(width: NetworkLayout.canvasWidth, height: NetworkLayout.canvasHeight)
@@ -222,56 +258,57 @@ private struct NetworkCanvas: View {
     }
 
     private func drawConnections(context: inout GraphicsContext) {
-        // Output layer: all 32 connections
+        // Helper: draw strongest N connections between two layers
+        func drawStrongest(w: [Float], srcLayer: NeuronSelection.Layer, srcCount: Int,
+                           dstLayer: NeuronSelection.Layer, dstCount: Int,
+                           threshold: Float, maxLines: Int, opacity: Double) {
+            var best: [(wt: Float, s: Int, d: Int)] = []
+            best.reserveCapacity(maxLines * 2)
+            for j in 0..<dstCount {
+                for i in 0..<srcCount {
+                    let wt = w[j * srcCount + i]
+                    if abs(wt) > threshold { best.append((wt, i, j)) }
+                }
+            }
+            best.sort { abs($0.wt) > abs($1.wt) }
+            for conn in best.prefix(maxLines) {
+                let src = NetworkLayout.position(layer: srcLayer, index: conn.s)
+                let dst = NetworkLayout.position(layer: dstLayer, index: conn.d)
+                var path = Path()
+                path.move(to: src); path.addLine(to: dst)
+                context.stroke(path, with: .color(connectionColor(conn.wt).opacity(opacity)), lineWidth: 1)
+            }
+        }
+
+        // Hidden5 -> Output: all 32
         let outP = NetworkLayout.position(layer: .output, index: 0)
-        for i in 0..<256 {
-            let p = NetworkLayout.position(layer: .hidden2, index: i)
-            let w = weights.w3[i]
+        for i in 0..<32 {
+            let p = NetworkLayout.position(layer: .hidden5, index: i)
+            let wt = weights.w6[i]
             var path = Path()
-            path.move(to: p)
-            path.addLine(to: outP)
-            context.stroke(path, with: .color(connectionColor(w).opacity(0.7)), lineWidth: 2)
+            path.move(to: p); path.addLine(to: outP)
+            context.stroke(path, with: .color(connectionColor(wt).opacity(0.7)), lineWidth: 2)
         }
-        // Hidden1 -> Hidden2: 131K potential, only strongest to avoid clutter
-        var h2strongest: [(w: Float, src: Int, dst: Int)] = []
-        h2strongest.reserveCapacity(3000)
-        for j in 0..<256 {
-            for i in 0..<512 {
-                let w = weights.w2[j * 512 + i]
-                if abs(w) > 0.1 {
-                    h2strongest.append((w, i, j))
-                }
-            }
-        }
-        h2strongest.sort { abs($0.w) > abs($1.w) }
-        for conn in h2strongest.prefix(2000) {
-            let src = NetworkLayout.position(layer: .hidden1, index: conn.src)
-            let dst = NetworkLayout.position(layer: .hidden2, index: conn.dst)
-            var path = Path()
-            path.move(to: src)
-            path.addLine(to: dst)
-            context.stroke(path, with: .color(connectionColor(conn.w).opacity(0.15)), lineWidth: 1)
-        }
-        // Input -> Hidden1: only the strongest ~1500 connections to avoid clutter
-        var strongest: [(w: Float, src: Int, dst: Int)] = []
-        strongest.reserveCapacity(2000)
-        for j in 0..<512 {
-            for i in 0..<769 {
-                let w = weights.w1[j * 769 + i]
-                if abs(w) > 0.15 {
-                    strongest.append((w, i, j))
-                }
-            }
-        }
-        strongest.sort { abs($0.w) > abs($1.w) }
-        for conn in strongest.prefix(1500) {
-            let src = NetworkLayout.position(layer: .input, index: conn.src)
-            let dst = NetworkLayout.position(layer: .hidden1, index: conn.dst)
-            var path = Path()
-            path.move(to: src)
-            path.addLine(to: dst)
-            context.stroke(path, with: .color(connectionColor(conn.w).opacity(0.25)), lineWidth: 1)
-        }
+        // Hidden4 -> Hidden5: 2048, draw all strong ones
+        drawStrongest(w: weights.w5, srcLayer: .hidden4, srcCount: 64,
+                      dstLayer: .hidden5, dstCount: 32,
+                      threshold: 0.02, maxLines: 1500, opacity: 0.3)
+        // Hidden3 -> Hidden4: 8K, strongest
+        drawStrongest(w: weights.w4, srcLayer: .hidden3, srcCount: 128,
+                      dstLayer: .hidden4, dstCount: 64,
+                      threshold: 0.05, maxLines: 1500, opacity: 0.2)
+        // Hidden2 -> Hidden3: 32K, strongest
+        drawStrongest(w: weights.w3, srcLayer: .hidden2, srcCount: 256,
+                      dstLayer: .hidden3, dstCount: 128,
+                      threshold: 0.08, maxLines: 1500, opacity: 0.15)
+        // Hidden1 -> Hidden2: 131K, strongest
+        drawStrongest(w: weights.w2, srcLayer: .hidden1, srcCount: 512,
+                      dstLayer: .hidden2, dstCount: 256,
+                      threshold: 0.1, maxLines: 1500, opacity: 0.12)
+        // Input -> Hidden1: 394K, strongest
+        drawStrongest(w: weights.w1, srcLayer: .input, srcCount: 769,
+                      dstLayer: .hidden1, dstCount: 512,
+                      threshold: 0.15, maxLines: 1200, opacity: 0.2)
     }
 
     private func connectionColor(_ w: Float) -> Color {
@@ -318,6 +355,9 @@ private struct NetworkCanvas: View {
             ("Input · 769", NetworkLayout.inputX),
             ("Hidden 1 · 512", NetworkLayout.hidden1X),
             ("Hidden 2 · 256", NetworkLayout.hidden2X),
+            ("Hidden 3 · 128", NetworkLayout.hidden3X),
+            ("Hidden 4 · 64", NetworkLayout.hidden4X),
+            ("Hidden 5 · 32", NetworkLayout.hidden5X),
             ("Output · 1", NetworkLayout.outputX),
         ]
         for (text, x) in labels {
@@ -330,7 +370,7 @@ private struct NetworkCanvas: View {
 // MARK: - Neuron selection + detail (unchanged)
 
 struct NeuronSelection: Identifiable {
-    enum Layer { case input, hidden1, hidden2, output }
+    enum Layer { case input, hidden1, hidden2, hidden3, hidden4, hidden5, output }
     let layer: Layer
     let index: Int
     var id: String { "\(layer)-\(index)" }
@@ -389,6 +429,9 @@ private struct NeuronDetailView: View {
         case .input: return "Input #\(selection.index)"
         case .hidden1: return "Hidden 1 · Neuron #\(selection.index)"
         case .hidden2: return "Hidden 2 · Neuron #\(selection.index)"
+        case .hidden3: return "Hidden 3 · Neuron #\(selection.index)"
+        case .hidden4: return "Hidden 4 · Neuron #\(selection.index)"
+        case .hidden5: return "Hidden 5 · Neuron #\(selection.index)"
         case .output: return "Output neuron"
         }
     }
@@ -400,7 +443,13 @@ private struct NeuronDetailView: View {
         case .hidden1:
             return Text("Takes all 769 inputs, weighs each one, and fires when its pattern is on the board.")
         case .hidden2:
-            return Text("Combines the 128 pattern detectors into higher-level strategy signals.")
+            return Text("Combines the 512 pattern detectors into higher-level strategy signals.")
+        case .hidden3:
+            return Text("Distills strategy into 128 tactical concepts.")
+        case .hidden4:
+            return Text("Refines tactics into 64 positional judgments.")
+        case .hidden5:
+            return Text("Final reasoning layer — 32 high-level evaluations feed the output.")
         case .output:
             return Text("The final verdict: positive means good for the side to move, negative means bad. This is the number the AI uses to pick moves.")
         }
@@ -428,8 +477,16 @@ private struct NeuronDetailView: View {
             let file = String(UnicodeScalar(97 + sq % 8)!)
             let rank = sq / 8 + 1
             return "\(side)\(piece) \(file)\(rank)"
-        case .hidden2, .output:
+        case .hidden2:
             return "hidden1 #\(i)"
+        case .hidden3:
+            return "hidden2 #\(i)"
+        case .hidden4:
+            return "hidden3 #\(i)"
+        case .hidden5:
+            return "hidden4 #\(i)"
+        case .output:
+            return "hidden5 #\(i)"
         case .input:
             return ""
         }
@@ -445,8 +502,17 @@ private struct NeuronDetailView: View {
         case .hidden2:
             let start = selection.index * 512
             raw = Array(w.w2[start..<(start + 512)])
+        case .hidden3:
+            let start = selection.index * 256
+            raw = Array(w.w3[start..<(start + 256)])
+        case .hidden4:
+            let start = selection.index * 128
+            raw = Array(w.w4[start..<(start + 128)])
+        case .hidden5:
+            let start = selection.index * 64
+            raw = Array(w.w5[start..<(start + 64)])
         case .output:
-            raw = w.w3
+            raw = w.w6
         case .input:
             return nil
         }
@@ -462,7 +528,10 @@ private struct NeuronDetailView: View {
         switch selection.layer {
         case .hidden1: return w.b1[selection.index]
         case .hidden2: return w.b2[selection.index]
-        case .output: return w.b3.first
+        case .hidden3: return w.b3[selection.index]
+        case .hidden4: return w.b4[selection.index]
+        case .hidden5: return w.b5[selection.index]
+        case .output: return w.b6.first
         case .input: return nil
         }
     }

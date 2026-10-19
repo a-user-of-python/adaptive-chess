@@ -330,7 +330,7 @@ private struct NeuronDetailView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(title)
                         .font(.title2.bold())
-                    Text(explanation)
+                    explanation
                         .font(.body)
                         .foregroundColor(.secondary)
 

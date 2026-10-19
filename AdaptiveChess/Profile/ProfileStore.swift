@@ -204,6 +204,9 @@ final class ProfileStore: ObservableObject {
             (old.w1, new.w1), (old.b1, new.b1),
             (old.w2, new.w2), (old.b2, new.b2),
             (old.w3, new.w3), (old.b3, new.b3),
+            (old.w4, new.w4), (old.b4, new.b4),
+            (old.w5, new.w5), (old.b5, new.b5),
+            (old.w6, new.w6), (old.b6, new.b6),
         ]
         var total: Double = 0
         var count = 0

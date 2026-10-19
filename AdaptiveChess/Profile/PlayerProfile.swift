@@ -56,7 +56,7 @@ struct NetworkWeights: Codable {
 /// behind. Records are append-only from the profile's point of view.
 struct GameRecord: Codable {
     let date: Date
-    let userColor: Color
+    let userColor: PieceColor
     let outcome: PlayerGameOutcome
     let plies: Int                        // half-moves in the whole game
     let pieceMoveCounts: [String: Int]    // user's moves only, keyed by PieceType raw value

@@ -70,35 +70,14 @@ struct SettingsView: View {
                 .foregroundColor(.secondary)
 
             ForEach(1...5, id: \.self) { level in
-                Button {
+                DifficultyRowView(
+                    level: level,
+                    name: Self.levelName(level),
+                    description: Self.levelDescription(level),
+                    isSelected: settings.aiLevel == level
+                ) {
                     settings.aiLevel = level
-                } label: {
-                    HStack(spacing: 14) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Level \(level) — \(Self.levelName(level))")
-                                .font(.title3)
-                                .bold()
-                                .foregroundColor(.primary)
-                            Text(Self.levelDescription(level))
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        if settings.aiLevel == level {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(.accentColor)
-                                .accessibilityHidden(true)
-                        }
-                    }
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(16)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("AI level \(level), \(Self.levelName(level))")
-                .accessibilityAddTraits(settings.aiLevel == level ? [.isButton, .isSelected] : .isButton)
             }
         }
     }
@@ -116,30 +95,12 @@ struct SettingsView: View {
                 .foregroundColor(.secondary)
 
             ForEach(Self.windowOptions, id: \.value) { option in
-                Button {
+                WindowOptionRowView(
+                    label: option.label,
+                    isSelected: store.contextWindow == option.value
+                ) {
                     store.contextWindow = option.value
-                } label: {
-                    HStack(spacing: 14) {
-                        Text(option.label)
-                            .font(.title3)
-                            .bold()
-                            .foregroundColor(.primary)
-                        Spacer()
-                        if store.contextWindow == option.value {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(.accentColor)
-                                .accessibilityHidden(true)
-                        }
-                    }
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(16)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Remember \(option.label)")
-                .accessibilityAddTraits(store.contextWindow == option.value ? [.isButton, .isSelected] : .isButton)
             }
         }
     }
@@ -166,5 +127,74 @@ struct SettingsView: View {
         case 5: return "Relentless. Bring your best — and keep evolving."
         default: return ""
         }
+    }
+}
+
+// MARK: - Extracted rows (kept separate so the compiler can type-check quickly)
+
+private struct DifficultyRowView: View {
+    let level: Int
+    let name: String
+    let description: String
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Level \(level) — \(name)")
+                        .font(.title3)
+                        .bold()
+                        .foregroundColor(.primary)
+                    Text(description)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(.accentColor)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding()
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(16)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("AI level \(level), \(name)")
+    }
+}
+
+private struct WindowOptionRowView: View {
+    let label: String
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 14) {
+                Text(label)
+                    .font(.title3)
+                    .bold()
+                    .foregroundColor(.primary)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(.accentColor)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding()
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(16)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Remember \(label)")
     }
 }

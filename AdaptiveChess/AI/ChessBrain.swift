@@ -168,8 +168,8 @@ final class ChessBrain {
         }
 
         let lambda: Float = 0.7
-        let lr: Float = 0.01
-        let epochs = 2
+        let lr: Float = 0.015
+        let epochs = 3
 
         for _ in 0..<epochs {
             var bootstrap = finalResult

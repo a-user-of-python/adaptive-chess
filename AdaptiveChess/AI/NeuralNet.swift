@@ -7,7 +7,7 @@ import Foundation
 /// Input: 769 floats — 64 squares × 12 one-hot features (6 piece types ×
 /// 2 colors), plus side-to-move at index 768 (+1 White / −1 Black).
 ///
-/// Architecture: 769 → 256 → 128 → 1. Hidden layers use ReLU, the output uses
+/// Architecture: 769 → 512 → 256 → 1. Hidden layers use ReLU, the output uses
 /// tanh, so the evaluation is always in [−1, 1] **from White's perspective**
 /// (+1 = White winning, −1 = Black winning).
 ///
@@ -18,8 +18,8 @@ final class NeuralNet: Codable {
     // MARK: - Architecture
 
     static let inputSize = 769
-    static let hidden1Size = 256
-    static let hidden2Size = 128
+    static let hidden1Size = 512
+    static let hidden2Size = 256
 
     // w1[hidden1][input], b1[hidden1]
     // w2[hidden2][hidden1], b2[hidden2]
@@ -196,17 +196,17 @@ final class NeuralNet: Codable {
         let nIn = NeuralNet.inputSize
         let nH1 = NeuralNet.hidden1Size
         let nH2 = NeuralNet.hidden2Size
-        // Unflatten w1: [256][769]
+        // Unflatten w1: [512][769]
         w1 = stride(from: 0, to: weights.w1.count, by: nIn).map {
             Array(weights.w1[$0..<min($0 + nIn, weights.w1.count)])
         }
         b1 = weights.b1
-        // Unflatten w2: [128][256]
+        // Unflatten w2: [256][512]
         w2 = stride(from: 0, to: weights.w2.count, by: nH1).map {
             Array(weights.w2[$0..<min($0 + nH1, weights.w2.count)])
         }
         b2 = weights.b2
-        // Unflatten w3: [1][128]
+        // Unflatten w3: [1][256]
         w3 = [weights.w3]
         b3 = weights.b3
     }

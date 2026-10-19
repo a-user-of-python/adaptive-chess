@@ -14,7 +14,7 @@ enum GameRecorder {
     /// abandoned games never touch the profile.
     static func recordFinishedGame(
         _ game: ChessGame,
-        userColor: Color,
+        userColor: PieceColor,
         into store: ProfileStore = .shared
     ) {
         guard game.isGameOver, let result = game.result else { return }

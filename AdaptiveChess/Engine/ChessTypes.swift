@@ -6,15 +6,15 @@
 
 import Foundation
 
-// MARK: - Color
+// MARK: - PieceColor
 
 /// The two sides in a game of chess.
-public enum Color: String, Codable, CaseIterable {
+public enum PieceColor: String, Codable, CaseIterable {
     case white
     case black
 
     /// The opposing color.
-    public var opposite: Color {
+    public var opposite: PieceColor {
         self == .white ? .black : .white
     }
 }
@@ -72,9 +72,9 @@ public enum PieceType: String, Codable, CaseIterable {
 /// A chess piece: a type plus the color that owns it.
 public struct Piece: Equatable, Hashable, Codable {
     public let type: PieceType
-    public let color: Color
+    public let color: PieceColor
 
-    public init(type: PieceType, color: Color) {
+    public init(type: PieceType, color: PieceColor) {
         self.type = type
         self.color = color
     }

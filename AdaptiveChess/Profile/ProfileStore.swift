@@ -407,10 +407,16 @@ final class ProfileStore: ObservableObject {
             let opponent: PieceColor = (mover == .white) ? .black : .white
             let isUserMove = (mover == userColor)
 
+            // Defensive: if the replay ever diverges from the recorded moves
+            // (stale/corrupt history), stop analyzing rather than crashing —
+            // the game is still recorded with the stats gathered so far.
+            guard let moverPiece = game.piece(at: move.from),
+                  moverPiece.color == mover else {
+                break
+            }
+
             if isUserMove {
-                if let piece = game.piece(at: move.from) {
-                    pieceCounts[piece.type.rawValue, default: 0] += 1
-                }
+                pieceCounts[moverPiece.type.rawValue, default: 0] += 1
                 if move.isCapture || move.isEnPassant { captures += 1 }
                 if move.isCastleKingside { kingside = true }
                 if move.isCastleQueenside { queenside = true }

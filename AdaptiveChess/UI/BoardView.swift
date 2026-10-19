@@ -23,7 +23,7 @@ struct BoardView: View {
     var interactionEnabled: Bool = true
 
     /// The color the human plays (always White in this app).
-    var userColor: Color = .white
+    var userColor: PieceColor = .white
 
     /// Called with the fully-formed move the user chose (promotion included).
     var onMove: (Move) -> Void
@@ -113,7 +113,7 @@ struct BoardView: View {
             if let piece = piece {
                 Text(piece.glyph)
                     .font(.system(size: size * 0.74))
-                    .foregroundColor(piece.color == .white ? .white : Color(white: 0.1))
+                    .foregroundColor(piece.color == PieceColor.white ? SwiftUI.Color.white : SwiftUI.Color(white: 0.1))
                     .shadow(color: piece.color == .white
                                 ? .black.opacity(0.75)
                                 : .white.opacity(0.4),
@@ -239,7 +239,7 @@ struct BoardView: View {
                     } label: {
                         Text(Piece(type: type, color: userColor).glyph)
                             .font(.system(size: 68))
-                            .foregroundColor(userColor == .white ? .white : Color(white: 0.1))
+                            .foregroundColor(userColor == PieceColor.white ? SwiftUI.Color.white : SwiftUI.Color(white: 0.1))
                             .shadow(color: .black.opacity(0.6), radius: 3)
                             .frame(width: 92, height: 92)
                             .background(Color(.secondarySystemBackground))

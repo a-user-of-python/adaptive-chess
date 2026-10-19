@@ -188,7 +188,7 @@ final class ProfileStore: ObservableObject {
     /// finished game. Internal — the profile is never user-editable, and
     /// UI code cannot call this.
     func updateWeights(_ weights: NetworkWeights) {
-        if let old = profile.weights {
+        if let old = profile.networkWeights {
             let (meanChange, movedCount) = Self.weightChange(old: old, new: weights)
             lastWeightChange = meanChange
             lastChangedWeightCount = movedCount

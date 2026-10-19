@@ -33,11 +33,11 @@ struct NetworkWeights: Codable {
     var b3: [Float]
 
     /// Expected element counts for the 769→128→32→1 architecture.
-    static let w1Count = 769 * 128
-    static let b1Count = 128
-    static let w2Count = 128 * 32
-    static let b2Count = 32
-    static let w3Count = 32
+    static let w1Count = 769 * 256
+    static let b1Count = 256
+    static let w2Count = 256 * 128
+    static let b2Count = 128
+    static let w3Count = 128
     static let b3Count = 1
 
     /// True when every array matches the architecture. Guards against

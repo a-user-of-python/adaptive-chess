@@ -148,7 +148,7 @@ final class ChessBrain {
     /// estimate of the next position, anchored to the actual game result.
     /// Learning rate is small on purpose — adaptation happens gradually over
     /// many games ("over time you start losing more"), not from one game.
-    func trainOnGame(moves: [Move], result: GameResult, userColor: Color) {
+    func trainOnGame(moves: [Move], result: GameResult, userColor: PieceColor) {
         guard !moves.isEmpty else { return }
 
         // Rebuild every position from the opening position.

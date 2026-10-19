@@ -367,41 +367,36 @@ struct ProfileView: View {
         key.prefix(1).uppercased() + key.dropFirst() + "s"
     }
 
-    // MARK: - Raw JSON
+    // MARK: - Neural network explorer
 
     private var jsonSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("Profile Data")
-            DisclosureGroup {
-                ScrollView([.horizontal, .vertical]) {
-                    Text(profileJSON)
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
-                        .padding(8)
+            sectionTitle("The AI's Brain")
+            NavigationLink {
+                NetworkView(store: store)
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Explore Neural Network")
+                            .font(.title3.bold())
+                        Text("See every neuron and weight, and how much changed last game.")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.title3.bold())
+                        .foregroundColor(.secondary)
                 }
-                .frame(maxHeight: 320)
+                .padding()
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(12)
-            } label: {
-                Text("View raw JSON")
-                    .font(.title3)
-                    .bold()
             }
-            Text("This is the exact file stored on your device. It is read-only — it cannot be edited, only learned from or deleted.")
+            .buttonStyle(.plain)
+            Text("This is the exact network stored on your device. It is read-only — it cannot be edited, only learned from or deleted.")
                 .font(.footnote)
                 .foregroundColor(.secondary)
         }
-    }
-
-    private var profileJSON: String {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(store.profile),
-              let text = String(data: data, encoding: .utf8) else {
-            return "{}"
-        }
-        return text
     }
 
     // MARK: - Weekly delete

@@ -1,200 +1,319 @@
 import SwiftUI
 
-// Visual explorer for the profile's neural network (769 → 128 → 32 → 1).
-// Each neuron is a circle; tap one to see its incoming weights.
+// Zoomable visual explorer for the profile's neural network (769 → 128 → 32 → 1).
+// Neurons are circles connected by lines; pinch to zoom and everything
+// (circles, lines, text) scales together. Tap a neuron for its weights.
 // The bottom meter shows how much the weights moved in the last game.
 struct NetworkView: View {
     @ObservedObject var store: ProfileStore
+    @State private var zoom: CGFloat = 0.5
     @State private var selectedNeuron: NeuronSelection? = nil
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                header
-
-                if let weights = store.profile.networkWeights, weights.isValid {
-                    outputLayer(weights: weights)
-                    hiddenLayer2(weights: weights)
-                    hiddenLayer1(weights: weights)
-                    inputLayer
-                } else {
-                    Text("No trained weights yet. Finish a game and the network will appear here.")
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding()
+        VStack(spacing: 0) {
+            zoomControls
+            if let weights = store.profile.networkWeights, weights.isValid {
+                ScrollView([.horizontal, .vertical]) {
+                    NetworkCanvas(weights: weights, zoom: zoom, onTap: { selectedNeuron = $0 })
+                        .scaleEffect(zoom, anchor: .topLeading)
+                        .frame(
+                            width: NetworkLayout.canvasWidth * zoom,
+                            height: NetworkLayout.canvasHeight * zoom,
+                            alignment: .topLeading
+                        )
                 }
-
-                weightChangeMeter
+                .gesture(
+                    MagnifyGesture()
+                        .onChanged { value in
+                            zoom = clampZoom(baseZoom * value.magnification)
+                        }
+                        .onEnded { _ in baseZoom = zoom }
+                )
+            } else {
+                Text("No trained weights yet. Finish a game and the network will appear here.")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding()
+                Spacer()
             }
-            .padding()
+            weightChangeMeter
         }
         .navigationTitle("Neural Network")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedNeuron) { selection in
             NeuronDetailView(selection: selection, weights: store.profile.networkWeights)
         }
+        .onAppear { baseZoom = zoom }
     }
 
-    // MARK: - Header
+    @State private var baseZoom: CGFloat = 0.5
 
-    private var header: some View {
-        VStack(spacing: 6) {
-            Text("769 → 128 → 32 → 1")
-                .font(.title2.bold())
-            Text("Tap any circle to see that neuron's weights.")
-                .font(.body)
-                .foregroundColor(.secondary)
-        }
+    private func clampZoom(_ z: CGFloat) -> CGFloat {
+        min(3.0, max(0.15, z))
     }
 
-    // MARK: - Layers
-
-    private func outputLayer(weights: NetworkWeights) -> some View {
-        VStack(spacing: 10) {
-            layerLabel("Output", count: 1, description: "Win probability: -1 (loss) to +1 (win)")
-            NeuronCircle(index: 0, value: weights.b3.first ?? 0, diameter: 88) {
-                selectedNeuron = NeuronSelection(layer: .output, index: 0)
+    private var zoomControls: some View {
+        HStack {
+            Button { zoom = clampZoom(zoom - 0.15); baseZoom = zoom } label: {
+                Image(systemName: "minus.magnifyingglass").font(.title3)
             }
-        }
-    }
-
-    private func hiddenLayer2(weights: NetworkWeights) -> some View {
-        VStack(spacing: 10) {
-            layerLabel("Hidden layer 2", count: 32, description: "Combines patterns into strategy")
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8), spacing: 8) {
-                ForEach(0..<32, id: \.self) { i in
-                    NeuronCircle(index: i, value: weights.b2[i], diameter: 44) {
-                        selectedNeuron = NeuronSelection(layer: .hidden2, index: i)
-                    }
-                }
+            Text("\(Int(zoom * 100))%")
+                .font(.body.monospaced())
+                .frame(minWidth: 60)
+            Button { zoom = clampZoom(zoom + 0.15); baseZoom = zoom } label: {
+                Image(systemName: "plus.magnifyingglass").font(.title3)
             }
-        }
-    }
-
-    private func hiddenLayer1(weights: NetworkWeights) -> some View {
-        VStack(spacing: 10) {
-            layerLabel("Hidden layer 1", count: 128, description: "Detects board patterns")
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 8), spacing: 6) {
-                ForEach(0..<128, id: \.self) { i in
-                    NeuronCircle(index: i, value: weights.b1[i], diameter: 36) {
-                        selectedNeuron = NeuronSelection(layer: .hidden1, index: i)
-                    }
-                }
-            }
-        }
-    }
-
-    private var inputLayer: some View {
-        VStack(spacing: 10) {
-            layerLabel("Input", count: 769, description: "Board squares × piece types + side to move")
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 12), spacing: 4) {
-                ForEach(0..<769, id: \.self) { i in
-                    NeuronCircle(index: i, value: 0, diameter: 28, showValue: false) {
-                        selectedNeuron = NeuronSelection(layer: .input, index: i)
-                    }
-                }
-            }
-        }
-    }
-
-    private func layerLabel(_ name: String, count: Int, description: String) -> some View {
-        VStack(spacing: 2) {
-            Text("\(name)  ·  \(count)")
-                .font(.headline)
-            Text(description)
+            Spacer()
+            Text("Pinch to zoom · tap a neuron for weights")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Weight change meter
 
     private var weightChangeMeter: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             Text("Learning Since Last Game")
                 .font(.headline)
             if let change = store.lastWeightChange {
                 VStack(spacing: 6) {
                     Text(String(format: "%.6f", change))
-                        .font(.system(.title, design: .monospaced).bold())
+                        .font(.system(.title2, design: .monospaced).bold())
                     Text("\(store.lastChangedWeightCount) of 102,656 weights moved")
-                        .font(.body)
+                        .font(.callout)
                         .foregroundColor(.secondary)
-                    // Visual bar: log-scaled so tiny changes are still visible
                     GeometryReader { geo in
-                        let fraction = min(1.0, max(0.02, log10(max(change, 1e-7)) + 7) / 4))
+                        let fraction = min(1.0, max(0.02, log10(max(change, 1e-7)) + 7) / 4)
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(Color(.systemGray5))
-                                .frame(height: 14)
+                                .frame(height: 12)
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(Color.accentColor)
-                                .frame(width: geo.size.width * CGFloat(fraction), height: 14)
+                                .frame(width: geo.size.width * CGFloat(fraction), height: 12)
                         }
                     }
-                    .frame(height: 14)
-                    Text("Bigger bar = more learning from that game. Early games move more; it settles as the AI converges on your style.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
+                    .frame(height: 12)
                 }
                 .padding()
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(12)
             } else {
                 Text("Finish a game and the change will appear here.")
-                    .font(.body)
+                    .font(.callout)
                     .foregroundColor(.secondary)
                     .padding()
                     .background(Color(.secondarySystemBackground))
                     .cornerRadius(12)
             }
         }
+        .padding()
+        .background(Color(.systemBackground).opacity(0.95))
     }
 }
 
-// MARK: - Neuron circle
+// MARK: - Layout
 
-private struct NeuronCircle: View {
-    let index: Int
-    let value: Float
-    let diameter: CGFloat
-    var showValue: Bool = true
-    let action: () -> Void
+private enum NetworkLayout {
+    // Column X centers
+    static let inputX: CGFloat = 320
+    static let hidden1X: CGFloat = 900
+    static let hidden2X: CGFloat = 1320
+    static let outputX: CGFloat = 1600
 
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                Circle()
-                    .fill(circleColor)
-                VStack(spacing: 0) {
-                    Text("\(index)")
-                        .font(.system(size: diameter * 0.28, weight: .bold, design: .monospaced))
-                        .foregroundColor(.primary)
-                    if showValue && diameter >= 36 {
-                        Text(String(format: "%.2f", value))
-                            .font(.system(size: diameter * 0.20, design: .monospaced))
-                            .foregroundColor(.secondary)
-                    }
+    // Grid configs: (columns, cell size)
+    static let inputCols = 24
+    static let inputCell: CGFloat = 26
+    static let hidden1Cols = 8
+    static let hidden1Cell: CGFloat = 44
+    static let hidden2Cols = 4
+    static let hidden2Cell: CGFloat = 56
+    static let outputDiameter: CGFloat = 90
+
+    static let topMargin: CGFloat = 80
+    static let canvasWidth: CGFloat = 1800
+    static let canvasHeight: CGFloat = 1400
+
+    static func position(layer: NeuronSelection.Layer, index: Int) -> CGPoint {
+        switch layer {
+        case .input:
+            let row = index / inputCols
+            let col = index % inputCols
+            let gridW = CGFloat(inputCols) * inputCell
+            let x = inputX - gridW / 2 + CGFloat(col) * inputCell + inputCell / 2
+            let y = topMargin + CGFloat(row) * inputCell + inputCell / 2
+            return CGPoint(x: x, y: y)
+        case .hidden1:
+            let row = index / hidden1Cols
+            let col = index % hidden1Cols
+            let gridW = CGFloat(hidden1Cols) * hidden1Cell
+            let x = hidden1X - gridW / 2 + CGFloat(col) * hidden1Cell + hidden1Cell / 2
+            let y = topMargin + 120 + CGFloat(row) * hidden1Cell + hidden1Cell / 2
+            return CGPoint(x: x, y: y)
+        case .hidden2:
+            let row = index / hidden2Cols
+            let col = index % hidden2Cols
+            let gridW = CGFloat(hidden2Cols) * hidden2Cell
+            let x = hidden2X - gridW / 2 + CGFloat(col) * hidden2Cell + hidden2Cell / 2
+            let y = topMargin + 280 + CGFloat(row) * hidden2Cell + hidden2Cell / 2
+            return CGPoint(x: x, y: y)
+        case .output:
+            return CGPoint(x: outputX, y: topMargin + 480)
+        }
+    }
+
+    static func radius(layer: NeuronSelection.Layer) -> CGFloat {
+        switch layer {
+        case .input: return inputCell / 2 - 2
+        case .hidden1: return hidden1Cell / 2 - 3
+        case .hidden2: return hidden2Cell / 2 - 4
+        case .output: return outputDiameter / 2
+        }
+    }
+
+    /// Hit-test a point against all neurons. Returns the tapped neuron, if any.
+    static func hitTest(_ point: CGPoint) -> NeuronSelection? {
+        // Check smallest layers first (they're on top visually)
+        let checks: [(NeuronSelection.Layer, Int)] = [
+            (.output, 1), (.hidden2, 32), (.hidden1, 128), (.input, 769),
+        ]
+        for (layer, count) in checks {
+            let r = radius(layer: layer)
+            for i in 0..<count {
+                let p = position(layer: layer, index: i)
+                let dx = point.x - p.x, dy = point.y - p.y
+                if dx * dx + dy * dy <= (r + 6) * (r + 6) {
+                    return NeuronSelection(layer: layer, index: i)
                 }
             }
-            .frame(width: diameter, height: diameter)
         }
-        .buttonStyle(.plain)
-    }
-
-    private var circleColor: Color {
-        // Color by bias sign/magnitude: blue = positive, orange = negative
-        let v = Double(value)
-        if abs(v) < 0.05 { return Color(.systemGray5) }
-        return v > 0 ? Color.blue.opacity(min(0.85, 0.25 + abs(v) * 0.5))
-                     : Color.orange.opacity(min(0.85, 0.25 + abs(v) * 0.5))
+        return nil
     }
 }
 
-// MARK: - Neuron selection + detail
+// MARK: - Canvas
 
-private struct NeuronSelection: Identifiable {
+private struct NetworkCanvas: View {
+    let weights: NetworkWeights
+    let zoom: CGFloat
+    let onTap: (NeuronSelection) -> Void
+
+    var body: some View {
+        Canvas { context, size in
+            drawConnections(context: &context)
+            drawLayer(context: &context, layer: .input, count: 769, biases: nil)
+            drawLayer(context: &context, layer: .hidden1, count: 128, biases: weights.b1)
+            drawLayer(context: &context, layer: .hidden2, count: 32, biases: weights.b2)
+            drawLayer(context: &context, layer: .output, count: 1, biases: weights.b3)
+            drawLabels(context: &context)
+        }
+        .frame(width: NetworkLayout.canvasWidth, height: NetworkLayout.canvasHeight)
+        .onTapGesture { location in
+            // location is in scaled space; convert to canvas logical coordinates
+            let logical = CGPoint(x: location.x / zoom, y: location.y / zoom)
+            if let hit = NetworkLayout.hitTest(logical) {
+                onTap(hit)
+            }
+        }
+    }
+
+    private func drawConnections(context: inout GraphicsContext) {
+        // Output layer: all 32 connections
+        let outP = NetworkLayout.position(layer: .output, index: 0)
+        for i in 0..<32 {
+            let p = NetworkLayout.position(layer: .hidden2, index: i)
+            let w = weights.w3[i]
+            var path = Path()
+            path.move(to: p)
+            path.addLine(to: outP)
+            context.stroke(path, with: .color(connectionColor(w).opacity(0.7)), lineWidth: 2)
+        }
+        // Hidden1 -> Hidden2: all 4096, very faint
+        for j in 0..<32 {
+            let dst = NetworkLayout.position(layer: .hidden2, index: j)
+            for i in 0..<128 {
+                let src = NetworkLayout.position(layer: .hidden1, index: i)
+                let w = weights.w2[j * 128 + i]
+                if abs(w) < 0.02 { continue }
+                var path = Path()
+                path.move(to: src)
+                path.addLine(to: dst)
+                context.stroke(path, with: .color(connectionColor(w).opacity(0.12)), lineWidth: 1)
+            }
+        }
+        // Input -> Hidden1: only the strongest ~1500 connections to avoid clutter
+        var strongest: [(w: Float, src: Int, dst: Int)] = []
+        strongest.reserveCapacity(2000)
+        for j in 0..<128 {
+            for i in 0..<769 {
+                let w = weights.w1[j * 769 + i]
+                if abs(w) > 0.15 {
+                    strongest.append((w, i, j))
+                }
+            }
+        }
+        strongest.sort { abs($0.w) > abs($1.w) }
+        for conn in strongest.prefix(1500) {
+            let src = NetworkLayout.position(layer: .input, index: conn.src)
+            let dst = NetworkLayout.position(layer: .hidden1, index: conn.dst)
+            var path = Path()
+            path.move(to: src)
+            path.addLine(to: dst)
+            context.stroke(path, with: .color(connectionColor(conn.w).opacity(0.25)), lineWidth: 1)
+        }
+    }
+
+    private func connectionColor(_ w: Float) -> Color {
+        w >= 0 ? .blue : .orange
+    }
+
+    private func drawLayer(context: inout GraphicsContext, layer: NeuronSelection.Layer, count: Int, biases: [Float]?) {
+        for i in 0..<count {
+            let p = NetworkLayout.position(layer: layer, index: i)
+            let r = NetworkLayout.radius(layer: layer)
+            let bias = (biases != nil && i < biases!.count) ? biases![i] : 0
+
+            let circle = Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2))
+            context.fill(circle, with: .color(neuronColor(bias: bias)))
+            context.stroke(circle, with: .color(.primary.opacity(0.3)), lineWidth: 1)
+
+            // Index number inside — scales with zoom because it's drawn in canvas space
+            if r >= 10 {
+                let fontSize = min(r * 0.7, 16)
+                let text = Text("\(i)").font(.system(size: fontSize, weight: .bold, design: .monospaced))
+                context.draw(text, at: p, anchor: .center)
+            }
+        }
+    }
+
+    private func neuronColor(bias: Float) -> Color {
+        let v = Double(bias)
+        if abs(v) < 0.05 { return Color(.systemGray5) }
+        return v > 0 ? Color.blue.opacity(min(0.8, 0.3 + abs(v) * 0.4))
+                     : Color.orange.opacity(min(0.8, 0.3 + abs(v) * 0.4))
+    }
+
+    private func drawLabels(context: inout GraphicsContext) {
+        let labels: [(String, CGFloat)] = [
+            ("Input · 769", NetworkLayout.inputX),
+            ("Hidden 1 · 128", NetworkLayout.hidden1X),
+            ("Hidden 2 · 32", NetworkLayout.hidden2X),
+            ("Output · 1", NetworkLayout.outputX),
+        ]
+        for (text, x) in labels {
+            let t = Text(text).font(.system(size: 28, weight: .bold))
+            context.draw(t, at: CGPoint(x: x, y: 30), anchor: .center)
+        }
+    }
+}
+
+// MARK: - Neuron selection + detail (unchanged)
+
+struct NeuronSelection: Identifiable {
     enum Layer { case input, hidden1, hidden2, output }
     let layer: Layer
     let index: Int
@@ -258,19 +377,17 @@ private struct NeuronDetailView: View {
         }
     }
 
-    private var explanation: some View {
-        Text({
-            switch selection.layer {
-            case .input:
-                return inputDescription(selection.index)
-            case .hidden1:
-                return "Takes all 769 inputs, weighs each one, and fires when its pattern is on the board."
-            case .hidden2:
-                return "Combines the 128 pattern detectors into higher-level strategy signals."
-            case .output:
-                return "The final verdict: positive means good for the side to move, negative means bad. This is the number the AI uses to pick moves."
-            }
-        }())
+    private var explanation: Text {
+        switch selection.layer {
+        case .input:
+            return Text(inputDescription(selection.index))
+        case .hidden1:
+            return Text("Takes all 769 inputs, weighs each one, and fires when its pattern is on the board.")
+        case .hidden2:
+            return Text("Combines the 128 pattern detectors into higher-level strategy signals.")
+        case .output:
+            return Text("The final verdict: positive means good for the side to move, negative means bad. This is the number the AI uses to pick moves.")
+        }
     }
 
     private func inputDescription(_ i: Int) -> String {

@@ -43,7 +43,7 @@ public class ChessGame {
 
     /// board[rank][file]; rank 0 is White's 1st rank. nil = empty square.
     private var board: [[Piece?]]
-    public private(set) var sideToMove: Color
+    public private(set) var sideToMove: PieceColor
     private var castling: CastlingRights
     /// Square a pawn could capture en passant to (set only on a double push).
     private var enPassantTarget: Square?
@@ -101,7 +101,7 @@ public class ChessGame {
                     file += digit
                 } else if let type = PieceType.fromFENLetter(ch) {
                     guard file < 8 else { return nil }
-                    let color: Color = ch.isUppercase ? .white : .black
+                    let color: PieceColor = ch.isUppercase ? .white : .black
                     b[rank][file] = Piece(type: type, color: color)
                     file += 1
                 } else {
@@ -112,7 +112,7 @@ public class ChessGame {
         }
 
         // 2. Side to move.
-        let side: Color
+        let side: PieceColor
         if parts[1] == "w" { side = .white }
         else if parts[1] == "b" { side = .black }
         else { return nil }
@@ -181,7 +181,7 @@ public class ChessGame {
     private static let bishopDirs = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
 
     /// True when `sq` is attacked by any piece of color `attacker`.
-    private func isAttacked(_ sq: Square, by attacker: Color) -> Bool {
+    private func isAttacked(_ sq: Square, by attacker: PieceColor) -> Bool {
         // Pawn attacks. A white pawn attacks from one rank below its target.
         let pawnRank = sq.rank + (attacker == .white ? -1 : 1)
         for df in [-1, 1] {
@@ -238,7 +238,7 @@ public class ChessGame {
     }
 
     /// True when `color`'s king is under attack.
-    public func isInCheck(_ color: Color) -> Bool {
+    public func isInCheck(_ color: PieceColor) -> Bool {
         for rank in 0..<8 {
             for file in 0..<8 {
                 if let p = board[rank][file], p.type == .king, p.color == color {

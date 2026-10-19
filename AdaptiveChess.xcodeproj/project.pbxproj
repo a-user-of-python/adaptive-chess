@@ -51,7 +51,11 @@
 			isa = PBXBuildFile;
 			fileRef = 1E825F5B6CDACE262F3035F0 /* SettingsView.swift */;
 		};
-		BB703DE275951DD242FE5FC1 /* ProfileView.swift */ = {
+		38AC66DC05F0E861DDBBCB25 /* NetworkView.swift */ = {
+			isa = PBXBuildFile;
+			fileRef = C58F199EEAC3D54ECF737D11 /* NetworkView.swift */;
+		};
+	BB703DE275951DD242FE5FC1 /* ProfileView.swift */ = {
 			isa = PBXBuildFile;
 			fileRef = 3E96A05C8B4C1F75E2F4EB42 /* ProfileView.swift */;
 		};
@@ -139,7 +143,13 @@
 			path = SettingsView.swift;
 			sourceTree = "<group>";
 		};
-		3E96A05C8B4C1F75E2F4EB42 /* ProfileView.swift */ = {
+		C58F199EEAC3D54ECF737D11 /* NetworkView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = NetworkView.swift;
+			sourceTree = "<group>";
+		};
+	3E96A05C8B4C1F75E2F4EB42 /* ProfileView.swift */ = {
 			isa = PBXFileReference;
 			fileEncoding = 4;
 			lastKnownFileType = sourcecode.swift;
@@ -216,6 +226,7 @@
 							42CA4121A58FB722F790C328 /* BoardView.swift */,
 							91CB8C3373B6A3D605CC4F43 /* GameView.swift */,
 							1E825F5B6CDACE262F3035F0 /* SettingsView.swift */,
+							C58F199EEAC3D54ECF737D11 /* NetworkView.swift */,
 							3E96A05C8B4C1F75E2F4EB42 /* ProfileView.swift */,
 			);
 			name = UI;
@@ -328,6 +339,7 @@
 							75EA088E011558F9A46F924F /* BoardView.swift */,
 							7DE380E827DA4374F8F30D11 /* GameView.swift */,
 							01843AA36FEE55E193EAFA26 /* SettingsView.swift */,
+							38AC66DC05F0E861DDBBCB25 /* NetworkView.swift */,
 							BB703DE275951DD242FE5FC1 /* ProfileView.swift */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

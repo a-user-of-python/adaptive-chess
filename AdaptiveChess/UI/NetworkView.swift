@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Zoomable visual explorer for the profile's neural network (769 → 256 → 128 → 1).
+// Zoomable visual explorer for the profile's neural network (769 → 512 → 256 → 1).
 // Neurons are circles connected by lines; pinch to zoom and everything
 // (circles, lines, text) scales together. Tap a neuron for its weights.
 // The bottom meter shows how much the weights moved in the last game.
@@ -83,7 +83,7 @@ struct NetworkView: View {
                 VStack(spacing: 6) {
                     Text(String(format: "%.6f", change))
                         .font(.system(.title2, design: .monospaced).bold())
-                    Text("\(store.lastChangedWeightCount) of 230,145 weights moved")
+                    Text("\(store.lastChangedWeightCount) of 525,825 weights moved")
                         .font(.callout)
                         .foregroundColor(.secondary)
                     GeometryReader { geo in
@@ -128,15 +128,15 @@ private enum NetworkLayout {
     // Grid configs: (columns, cell size)
     static let inputCols = 24
     static let inputCell: CGFloat = 26
-    static let hidden1Cols = 16
-    static let hidden1Cell: CGFloat = 36
-    static let hidden2Cols = 8
-    static let hidden2Cell: CGFloat = 44
+    static let hidden1Cols = 20
+    static let hidden1Cell: CGFloat = 30
+    static let hidden2Cols = 16
+    static let hidden2Cell: CGFloat = 36
     static let outputDiameter: CGFloat = 90
 
     static let topMargin: CGFloat = 80
     static let canvasWidth: CGFloat = 1800
-    static let canvasHeight: CGFloat = 1400
+    static let canvasHeight: CGFloat = 1700
 
     static func position(layer: NeuronSelection.Layer, index: Int) -> CGPoint {
         switch layer {
@@ -179,7 +179,7 @@ private enum NetworkLayout {
     static func hitTest(_ point: CGPoint) -> NeuronSelection? {
         // Check smallest layers first (they're on top visually)
         let checks: [(NeuronSelection.Layer, Int)] = [
-            (.output, 1), (.hidden2, 128), (.hidden1, 256), (.input, 769),
+            (.output, 1), (.hidden2, 256), (.hidden1, 512), (.input, 769),
         ]
         for (layer, count) in checks {
             let r = radius(layer: layer)
@@ -206,8 +206,8 @@ private struct NetworkCanvas: View {
         Canvas { context, size in
             drawConnections(context: &context)
             drawLayer(context: &context, layer: .input, count: 769, biases: nil)
-            drawLayer(context: &context, layer: .hidden1, count: 256, biases: weights.b1)
-            drawLayer(context: &context, layer: .hidden2, count: 128, biases: weights.b2)
+            drawLayer(context: &context, layer: .hidden1, count: 512, biases: weights.b1)
+            drawLayer(context: &context, layer: .hidden2, count: 256, biases: weights.b2)
             drawLayer(context: &context, layer: .output, count: 1, biases: weights.b3)
             drawLabels(context: &context)
         }
@@ -224,7 +224,7 @@ private struct NetworkCanvas: View {
     private func drawConnections(context: inout GraphicsContext) {
         // Output layer: all 32 connections
         let outP = NetworkLayout.position(layer: .output, index: 0)
-        for i in 0..<128 {
+        for i in 0..<256 {
             let p = NetworkLayout.position(layer: .hidden2, index: i)
             let w = weights.w3[i]
             var path = Path()
@@ -232,23 +232,30 @@ private struct NetworkCanvas: View {
             path.addLine(to: outP)
             context.stroke(path, with: .color(connectionColor(w).opacity(0.7)), lineWidth: 2)
         }
-        // Hidden1 -> Hidden2: all 4096, very faint
-        for j in 0..<128 {
-            let dst = NetworkLayout.position(layer: .hidden2, index: j)
-            for i in 0..<256 {
-                let src = NetworkLayout.position(layer: .hidden1, index: i)
-                let w = weights.w2[j * 256 + i]
-                if abs(w) < 0.02 { continue }
-                var path = Path()
-                path.move(to: src)
-                path.addLine(to: dst)
-                context.stroke(path, with: .color(connectionColor(w).opacity(0.12)), lineWidth: 1)
+        // Hidden1 -> Hidden2: 131K potential, only strongest to avoid clutter
+        var h2strongest: [(w: Float, src: Int, dst: Int)] = []
+        h2strongest.reserveCapacity(3000)
+        for j in 0..<256 {
+            for i in 0..<512 {
+                let w = weights.w2[j * 512 + i]
+                if abs(w) > 0.1 {
+                    h2strongest.append((w, i, j))
+                }
             }
+        }
+        h2strongest.sort { abs($0.w) > abs($1.w) }
+        for conn in h2strongest.prefix(2000) {
+            let src = NetworkLayout.position(layer: .hidden1, index: conn.src)
+            let dst = NetworkLayout.position(layer: .hidden2, index: conn.dst)
+            var path = Path()
+            path.move(to: src)
+            path.addLine(to: dst)
+            context.stroke(path, with: .color(connectionColor(conn.w).opacity(0.15)), lineWidth: 1)
         }
         // Input -> Hidden1: only the strongest ~1500 connections to avoid clutter
         var strongest: [(w: Float, src: Int, dst: Int)] = []
         strongest.reserveCapacity(2000)
-        for j in 0..<256 {
+        for j in 0..<512 {
             for i in 0..<769 {
                 let w = weights.w1[j * 769 + i]
                 if abs(w) > 0.15 {
@@ -307,8 +314,8 @@ private struct NetworkCanvas: View {
     private func drawLabels(context: inout GraphicsContext) {
         let labels: [(String, CGFloat)] = [
             ("Input · 769", NetworkLayout.inputX),
-            ("Hidden 1 · 256", NetworkLayout.hidden1X),
-            ("Hidden 2 · 128", NetworkLayout.hidden2X),
+            ("Hidden 1 · 512", NetworkLayout.hidden1X),
+            ("Hidden 2 · 256", NetworkLayout.hidden2X),
             ("Output · 1", NetworkLayout.outputX),
         ]
         for (text, x) in labels {
@@ -434,8 +441,8 @@ private struct NeuronDetailView: View {
             let start = selection.index * 769
             raw = Array(w.w1[start..<(start + 769)])
         case .hidden2:
-            let start = selection.index * 256
-            raw = Array(w.w2[start..<(start + 256)])
+            let start = selection.index * 512
+            raw = Array(w.w2[start..<(start + 512)])
         case .output:
             raw = w.w3
         case .input:

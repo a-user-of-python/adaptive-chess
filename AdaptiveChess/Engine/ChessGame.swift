@@ -421,7 +421,11 @@ public class ChessGame {
         assert(board[from.rank][from.file]?.color == us,
                "makeMove: expected own piece on \(from.algebraic)")
 
-        let moving = board[from.rank][from.file]!
+        // Defensive: never crash on a bad move (e.g. a stale move replayed
+        // by the game recorder). A no-op is safer than a crash.
+        guard let moving = board[from.rank][from.file], moving.color == us else {
+            return
+        }
 
         // Snapshot everything that changes, for undo.
         var undo = UndoInfo(move: move, captured: nil, capturedSquare: nil,

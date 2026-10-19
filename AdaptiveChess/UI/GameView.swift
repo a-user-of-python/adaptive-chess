@@ -54,6 +54,13 @@ final class GameViewModel: ObservableObject {
     }
 
     func newGame() {
+        // Safety net: if the previous game had meaningful play but was never
+        // recorded (e.g. the user hit New Game thinking it was over), record
+        // it as a draw rather than silently losing it. Needs ≥4 plies so
+        // accidental taps don't pollute the profile.
+        if !recorded && !game.isGameOver && game.moveHistory.count >= 4 {
+            finishGame(result: .draw, message: "Game abandoned.")
+        }
         gameID = UUID()
         game = ChessGame()
         selectedSquare = nil

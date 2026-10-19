@@ -275,16 +275,24 @@ private struct NetworkCanvas: View {
         for i in 0..<count {
             let p = NetworkLayout.position(layer: layer, index: i)
             let r = NetworkLayout.radius(layer: layer)
-            let bias = (biases != nil && i < biases!.count) ? biases![i] : 0
+            let bias: Float? = (biases != nil && i < biases!.count) ? biases![i] : nil
 
             let circle = Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2))
-            context.fill(circle, with: .color(neuronColor(bias: bias)))
+            context.fill(circle, with: .color(neuronColor(bias: bias ?? 0)))
             context.stroke(circle, with: .color(.primary.opacity(0.3)), lineWidth: 1)
 
-            // Index number inside — scales with zoom because it's drawn in canvas space
+            // The neuron's own weight (bias) inside the circle.
+            // Input neurons have no weights, so they show their index.
+            // Scales with zoom because it's drawn in canvas space.
             if r >= 10 {
-                let fontSize = min(r * 0.7, 16)
-                let text = Text("\(i)").font(.system(size: fontSize, weight: .bold, design: .monospaced))
+                let fontSize = min(r * 0.55, 14)
+                let label: String
+                if let b = bias {
+                    label = String(format: "%+.2f", b)
+                } else {
+                    label = "\(i)"
+                }
+                let text = Text(label).font(.system(size: fontSize, weight: .bold, design: .monospaced))
                 context.draw(text, at: p, anchor: .center)
             }
         }

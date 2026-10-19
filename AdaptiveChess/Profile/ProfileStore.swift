@@ -176,13 +176,49 @@ final class ProfileStore: ObservableObject {
 
     // MARK: - Neural network weights
 
+    /// Mean absolute weight change from the most recent training session.
+    /// nil if no training has happened yet this launch. Not persisted —
+    /// it's a "what just changed" readout, not profile data.
+    @Published var lastWeightChange: Float? = nil
+    /// Number of weights that moved in the last training session.
+    @Published var lastChangedWeightCount: Int = 0
+
     /// Replaces the CURRENT profile's learned network weights and persists
     /// them to that profile's JSON. Called by the AI after training on a
     /// finished game. Internal — the profile is never user-editable, and
     /// UI code cannot call this.
     func updateWeights(_ weights: NetworkWeights) {
+        if let old = profile.weights {
+            let (meanChange, movedCount) = Self.weightChange(old: old, new: weights)
+            lastWeightChange = meanChange
+            lastChangedWeightCount = movedCount
+        }
         profile.setWeights(weights)
         save()
+    }
+
+    /// Mean absolute change per weight, plus count of weights that moved
+    /// more than a negligible epsilon.
+    private static func weightChange(old: NetworkWeights, new: NetworkWeights) -> (Float, Int) {
+        let pairs: [([Float], [Float])] = [
+            (old.w1, new.w1), (old.b1, new.b1),
+            (old.w2, new.w2), (old.b2, new.b2),
+            (old.w3, new.w3), (old.b3, new.b3),
+        ]
+        var total: Double = 0
+        var count = 0
+        var moved = 0
+        for (a, b) in pairs {
+            let n = min(a.count, b.count)
+            for i in 0..<n {
+                let d = abs(Double(a[i]) - Double(b[i]))
+                total += d
+                count += 1
+                if d > 1e-6 { moved += 1 }
+            }
+        }
+        guard count > 0 else { return (0, 0) }
+        return (Float(total / Double(count)), moved)
     }
 
     // MARK: - Weekly delete (per profile)

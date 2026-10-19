@@ -160,7 +160,7 @@ final class ProfileStore: ObservableObject {
 
     /// Records a finished game into the CURRENT profile. Drops the oldest
     /// game when the record list exceeds `contextWindow` (0 = unlimited).
-    func recordGame(moves: [Move], result: GameResult, userColor: Color) {
+    func recordGame(moves: [Move], result: GameResult, userColor: PieceColor) {
         let record = Self.analyze(moves: moves, result: result, userColor: userColor)
         profile.append(record, window: contextWindow)
         if let i = profiles.firstIndex(where: { $0.id == currentProfileId }) {
@@ -394,7 +394,7 @@ final class ProfileStore: ObservableObject {
     /// Replays a finished game and builds the per-game record for the user.
     /// Only the user's own moves contribute to piece counts, captures, checks,
     /// and castling; the opening key uses the game's first 4 half-moves.
-    private static func analyze(moves: [Move], result: GameResult, userColor: Color) -> GameRecord {
+    private static func analyze(moves: [Move], result: GameResult, userColor: PieceColor) -> GameRecord {
         let game = ChessGame()
         var pieceCounts: [String: Int] = [:]
         var captures = 0
@@ -403,8 +403,8 @@ final class ProfileStore: ObservableObject {
         var queenside = false
 
         for (index, move) in moves.enumerated() {
-            let mover: Color = (index % 2 == 0) ? .white : .black
-            let opponent: Color = (mover == .white) ? .black : .white
+            let mover: PieceColor = (index % 2 == 0) ? .white : .black
+            let opponent: PieceColor = (mover == .white) ? .black : .white
             let isUserMove = (mover == userColor)
 
             if isUserMove {

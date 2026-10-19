@@ -12,7 +12,7 @@ struct NetworkView: View {
             VStack(spacing: 28) {
                 header
 
-                if let weights = store.profile.weights, weights.isValid {
+                if let weights = store.profile.networkWeights, weights.isValid {
                     outputLayer(weights: weights)
                     hiddenLayer2(weights: weights)
                     hiddenLayer1(weights: weights)
@@ -31,7 +31,7 @@ struct NetworkView: View {
         }
         .navigationTitle("Neural Network")
         .sheet(item: $selectedNeuron) { selection in
-            NeuronDetailView(selection: selection, weights: store.profile.weights)
+            NeuronDetailView(selection: selection, weights: store.profile.networkWeights)
         }
     }
 

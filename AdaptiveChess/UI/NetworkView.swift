@@ -130,7 +130,7 @@ private enum NetworkLayout {
     static let inputCell: CGFloat = 26
     static let hidden1Cols = 16
     static let hidden1Cell: CGFloat = 36
-    static let hidden2Cell: CGFloat = 44
+    static let hidden2Cols = 8
     static let hidden2Cell: CGFloat = 44
     static let outputDiameter: CGFloat = 90
 

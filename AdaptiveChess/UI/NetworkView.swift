@@ -279,6 +279,8 @@ private struct NetworkCanvas: View {
     }
 
     private func drawLayer(context: inout GraphicsContext, layer: NeuronSelection.Layer, count: Int, biases: [Float]?) {
+        // Text is only readable when zoomed in — hide it when zoomed out to avoid a jumbled mess
+        let showText = zoom >= 0.7
         for i in 0..<count {
             let p = NetworkLayout.position(layer: layer, index: i)
             let r = NetworkLayout.radius(layer: layer)
@@ -290,8 +292,8 @@ private struct NetworkCanvas: View {
 
             // The neuron's own weight (bias) inside the circle.
             // Input neurons have no weights, so they show their index.
-            // Scales with zoom because it's drawn in canvas space.
-            if r >= 10 {
+            // Only drawn when zoomed in enough to read — otherwise circles stay clean.
+            if r >= 10 && showText {
                 let fontSize = min(r * 0.55, 14)
                 let label: String
                 if let b = bias {

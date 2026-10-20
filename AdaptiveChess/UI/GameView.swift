@@ -28,6 +28,13 @@ final class GameViewModel: ObservableObject {
     /// land on the wrong position.
     private var gameID = UUID()
 
+    /// The network for THIS game. Persistent across moves so per-move
+    /// training accumulates; saved back to the profile at game end.
+    /// Recreated from the profile at every newGame().
+    private var gameNetwork: NeuralNet
+    /// Brain wrapping gameNetwork. Its move history resets each game.
+    private var gameBrain: ChessBrain
+
     /// ChessGame is a reference type, so in-place mutations (makeMove)
     /// don't trip @Published. Call this after every mutation.
     private func refresh() {
@@ -35,7 +42,30 @@ final class GameViewModel: ObservableObject {
     }
 
     init() {
+        // Fresh network from the profile for this game.
+        if let w = ProfileStore.shared.currentWeights,
+           let net = NeuralNet(weights: w) {
+            gameNetwork = net
+        } else {
+            gameNetwork = NeuralNet()
+        }
+        gameBrain = ChessBrain(level: AppSettings.shared.aiLevel,
+                               network: gameNetwork)
         updateStatus()
+    }
+
+    /// Rebuild the per-game brain from the current profile weights.
+    /// Called by newGame() so each game starts from the latest learning.
+    private func resetBrainForNewGame() {
+        if let w = ProfileStore.shared.currentWeights,
+           let net = NeuralNet(weights: w) {
+            gameNetwork = net
+        } else {
+            gameNetwork = NeuralNet()
+        }
+        gameBrain = ChessBrain(level: AppSettings.shared.aiLevel,
+                               network: gameNetwork)
+        gameBrain.resetMoveHistory()
     }
 
     // MARK: - User actions
@@ -48,6 +78,8 @@ final class GameViewModel: ObservableObject {
         refresh()
         lastMove = move
         selectedSquare = nil
+        // Online learning: one light TD step after every move.
+        gameBrain.trainOnMove(game: game)
         updateStatus()
         if checkGameOver() { return }
         triggerAIMove()
@@ -68,6 +100,7 @@ final class GameViewModel: ObservableObject {
         aiThinking = false
         recorded = false
         gameOverText = nil
+        resetBrainForNewGame()
         updateStatus()
     }
 
@@ -114,6 +147,10 @@ final class GameViewModel: ObservableObject {
                     self.refresh()
                     self.lastMove = move
                     self.selectedSquare = nil
+                    // Online learning: one light TD step after the AI's move too.
+                    // Note: the AI moved using a snapshot network; the per-move
+                    // training here applies to the persistent game network.
+                    self.gameBrain.trainOnMove(game: self.game)
                 }
                 self.updateStatus()
                 _ = self.checkGameOver()
@@ -174,26 +211,23 @@ final class GameViewModel: ObservableObject {
         gameOverText = message
         statusText = message
         let moves = game.moveHistory
-        // Train the neural net on this game (background thread)
+        // Train the neural net on this game (background thread).
+        // Uses the persistent game network, which already accumulated
+        // per-move online learning during the game.
+        let gameNet = self.gameNetwork
         let savedWeights = ProfileStore.shared.currentWeights
+        let level = AppSettings.shared.aiLevel
         DispatchQueue.global(qos: .utility).async {
-            let network: NeuralNet
-            if let w = savedWeights, let net = NeuralNet(weights: w) {
-                network = net
-            } else {
-                network = NeuralNet()
-            }
-            let brain = ChessBrain(level: AppSettings.shared.aiLevel, network: network)
+            let brain = ChessBrain(level: level, network: gameNet)
             brain.trainOnGame(moves: moves, result: result, userColor: .white)
-            let newWeights = network.exportWeights()
+            let newWeights = gameNet.exportWeights()
             Task { @MainActor in
                 ProfileStore.shared.updateWeights(newWeights)
             }
             // Narrate what changed, using the on-device AI (iOS 26+).
             // The text file resets every game.
             if #available(iOS 26, *) {
-                let oldW = savedWeights
-                NetworkNarrator.shared.narrate(oldWeights: oldW,
+                NetworkNarrator.shared.narrate(oldWeights: savedWeights,
                                               newWeights: newWeights,
                                               result: result,
                                               userColor: .white,

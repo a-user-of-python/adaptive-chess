@@ -141,6 +141,55 @@ final class ChessBrain {
 
     // MARK: - Learning
 
+    /// Recent encoded positions, for online per-move training.
+    /// Kept short — only the last few plies matter for the lookahead check.
+    private var recentPositions: [[Float]] = []
+    private let maxHistory = 6
+
+    /// Call after every move (by either side) during a live game.
+    /// Does one light TD step: checks whether the network's past "future"
+    /// predictions match what actually arrived, and corrects them.
+    ///
+    /// This is the tight feedback loop — the network learns DURING the game,
+    /// not just at the end. The learning rate is deliberately small so a
+    /// single game can't overwrite what older games taught.
+    ///
+    /// - Parameter game: the position AFTER the move was made.
+    func trainOnMove(game: ChessGame) {
+        let x = PositionEncoder.encode(game)
+        recentPositions.append(x)
+        if recentPositions.count > maxHistory {
+            recentPositions.removeFirst()
+        }
+
+        let lr: Float = 0.005
+        let n = recentPositions.count
+        let nowPred = network.forwardMulti(x)
+
+        // 2 plies ago, out[1] predicted "value now". Correct it toward
+        // what the network actually sees now.
+        if n >= 3 {
+            let pastX = recentPositions[n - 3]
+            let pastPred = network.forwardMulti(pastX)
+            network.train(x: pastX,
+                          targets: [pastPred[0], nowPred[0], pastPred[2]],
+                          lr: lr)
+        }
+        // 4 plies ago, out[2] predicted "value now". Same correction.
+        if n >= 5 {
+            let pastX = recentPositions[n - 5]
+            let pastPred = network.forwardMulti(pastX)
+            network.train(x: pastX,
+                          targets: [pastPred[0], pastPred[1], nowPred[0]],
+                          lr: lr)
+        }
+    }
+
+    /// Call when a new game starts.
+    func resetMoveHistory() {
+        recentPositions.removeAll()
+    }
+
     /// Train the network on a finished game.
     ///
     /// Every position in the game — before each move by *either* player —

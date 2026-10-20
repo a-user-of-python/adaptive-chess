@@ -38,6 +38,7 @@ struct NetworkView: View {
                 Spacer()
             }
             weightChangeMeter
+            networkThoughts
         }
         .navigationTitle("Neural Network")
         .navigationBarTitleDisplayMode(.inline)
@@ -75,8 +76,7 @@ struct NetworkView: View {
 
     // MARK: - Weight change meter
 
-    private var weightChangeMeter: some View {
-        VStack(spacing: 8) {
+    private var weightChangeMeter: some View {        VStack(spacing: 8) {
             Text("Learning Since Last Game")
                 .font(.headline)
             if let change = store.lastWeightChange {
@@ -113,6 +113,34 @@ struct NetworkView: View {
         }
         .padding()
         .background(Color(.systemBackground).opacity(0.95))
+    }
+
+    // MARK: - What the network thinks is new
+
+    /// Plain-language summary from the on-device AI, reset every game.
+    /// Also saved to network-thoughts.txt in the app's documents.
+    @ViewBuilder
+    private var networkThoughts: some View {
+        if #available(iOS 26, *) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("What Your Network Thinks Is New")
+                    .font(.headline)
+                if let summary = NetworkNarrator.shared.latestSummary {
+                    Text(summary)
+                        .font(.body)
+                        .foregroundColor(.primary)
+                } else {
+                    Text("Finish a game and the on-device AI will explain what changed.")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding()
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(12)
+            .padding(.horizontal)
+            .padding(.bottom, 8)
+        }
     }
 }
 

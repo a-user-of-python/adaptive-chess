@@ -27,6 +27,10 @@
 			isa = PBXBuildFile;
 			fileRef = A82FD77F765F56A7DDD62141 /* ChessBrain.swift */;
 		};
+		102706DC4456EF7C7AE48EE8 /* NetworkNarrator.swift */ = {
+			isa = PBXBuildFile;
+			fileRef = FB519A7F278909F556F83579 /* NetworkNarrator.swift */;
+		};
 		A73F63534E35DA27977350E7 /* PlayerProfile.swift */ = {
 			isa = PBXBuildFile;
 			fileRef = 63EE3DA7B4EE51E0BDDE8459 /* PlayerProfile.swift */;
@@ -99,6 +103,13 @@
 			fileEncoding = 4;
 			lastKnownFileType = sourcecode.swift;
 			path = ChessBrain.swift;
+			sourceTree = "<group>";
+		};
+		FB519A7F278909F556F83579 /* NetworkNarrator.swift */ = {
+			isa = PBXFileReference;
+			fileEncoding = 4;
+			lastKnownFileType = sourcecode.swift;
+			path = NetworkNarrator.swift;
 			sourceTree = "<group>";
 		};
 		63EE3DA7B4EE51E0BDDE8459 /* PlayerProfile.swift */ = {
@@ -204,6 +215,7 @@
 			children = (
 							906F87D4342EE3023515AA2D /* NeuralNet.swift */,
 							A82FD77F765F56A7DDD62141 /* ChessBrain.swift */,
+							FB519A7F278909F556F83579 /* NetworkNarrator.swift */,
 			);
 			name = AI;
 			path = AI;
@@ -333,6 +345,7 @@
 							98DF6AD04F9BCF05987173B4 /* ChessGame.swift */,
 							6F6BA9F349BF8C1A740BDBFA /* NeuralNet.swift */,
 							238C01B929B9C8F87E87DCBA /* ChessBrain.swift */,
+							102706DC4456EF7C7AE48EE8 /* NetworkNarrator.swift */,
 							A73F63534E35DA27977350E7 /* PlayerProfile.swift */,
 							735C9F0E610AAEBB9B584256 /* ProfileStore.swift */,
 							80DC3FAF95EAAD17FEFF0966 /* GameRecorder.swift */,

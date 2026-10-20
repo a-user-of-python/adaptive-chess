@@ -189,6 +189,16 @@ final class GameViewModel: ObservableObject {
             Task { @MainActor in
                 ProfileStore.shared.updateWeights(newWeights)
             }
+            // Narrate what changed, using the on-device AI (iOS 26+).
+            // The text file resets every game.
+            if #available(iOS 26, *) {
+                let oldW = savedWeights
+                NetworkNarrator.shared.narrate(oldWeights: oldW,
+                                              newWeights: newWeights,
+                                              result: result,
+                                              userColor: .white,
+                                              moveCount: moves.count)
+            }
         }
         ProfileStore.shared.recordGame(moves: moves,
                                        result: result,

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Zoomable visual explorer for the profile's neural network (769 → 512 → 256 → 1).
+// Zoomable visual explorer for the profile's neural network (769 → 512 → 256 → 128 → 64 → 32 → 1).
 // Neurons are circles connected by lines; pinch to zoom and everything
 // (circles, lines, text) scales together. Tap a neuron for its weights.
 // The bottom meter shows how much the weights moved in the last game.
@@ -119,14 +119,16 @@ struct NetworkView: View {
 // MARK: - Layout
 
 private enum NetworkLayout {
-    // Column X centers
-    static let inputX: CGFloat = 280
-    static let hidden1X: CGFloat = 750
-    static let hidden2X: CGFloat = 1150
-    static let hidden3X: CGFloat = 1480
-    static let hidden4X: CGFloat = 1750
-    static let hidden5X: CGFloat = 1980
-    static let outputX: CGFloat = 2180
+    // Column X centers — spaced so no two neuron grids overlap.
+    // Grid widths: input 624, h1 600, h2 576, h3 480, h4 384, h5 416, out 90.
+    // 250pt gaps between adjacent grid edges.
+    static let inputX: CGFloat = 412
+    static let hidden1X: CGFloat = 1274
+    static let hidden2X: CGFloat = 2112
+    static let hidden3X: CGFloat = 2890
+    static let hidden4X: CGFloat = 3572
+    static let hidden5X: CGFloat = 4222
+    static let outputX: CGFloat = 4725
 
     // Grid configs: (columns, cell size)
     static let inputCols = 24
@@ -144,7 +146,7 @@ private enum NetworkLayout {
     static let outputDiameter: CGFloat = 90
 
     static let topMargin: CGFloat = 80
-    static let canvasWidth: CGFloat = 2400
+    static let canvasWidth: CGFloat = 4900
     static let canvasHeight: CGFloat = 1700
 
     static func position(layer: NeuronSelection.Layer, index: Int) -> CGPoint {
@@ -258,66 +260,65 @@ private struct NetworkCanvas: View {
     }
 
     private func drawConnections(context: inout GraphicsContext) {
-        // Helper: draw strongest N connections between two layers
-        func drawStrongest(w: [Float], srcLayer: NeuronSelection.Layer, srcCount: Int,
-                           dstLayer: NeuronSelection.Layer, dstCount: Int,
-                           threshold: Float, maxLines: Int, opacity: Double) {
-            var best: [(wt: Float, s: Int, d: Int)] = []
-            best.reserveCapacity(maxLines * 2)
+        // Sean's call: draw EVERY connection in the network, not a sample.
+        // Lines are batched by sign into one path per color per layer pair,
+        // so 568K connections become 12 strokes. Thin + translucent so dense
+        // regions read as a cloud, not a solid blob.
+        func drawAll(w: [Float], srcLayer: NeuronSelection.Layer, srcCount: Int,
+                     dstLayer: NeuronSelection.Layer, dstCount: Int,
+                     opacity: Double, lineWidth: CGFloat) {
+            // Precompute positions once per layer.
+            var srcPts: [CGPoint] = []
+            srcPts.reserveCapacity(srcCount)
+            for i in 0..<srcCount { srcPts.append(NetworkLayout.position(layer: srcLayer, index: i)) }
+            var dstPts: [CGPoint] = []
+            dstPts.reserveCapacity(dstCount)
+            for j in 0..<dstCount { dstPts.append(NetworkLayout.position(layer: dstLayer, index: j)) }
+
+            var posPath = Path()
+            var negPath = Path()
             for j in 0..<dstCount {
+                let dst = dstPts[j]
+                let base = j * srcCount
                 for i in 0..<srcCount {
-                    let wt = w[j * srcCount + i]
-                    if abs(wt) > threshold { best.append((wt, i, j)) }
+                    let wt = w[base + i]
+                    let src = srcPts[i]
+                    if wt >= 0 {
+                        posPath.move(to: src); posPath.addLine(to: dst)
+                    } else {
+                        negPath.move(to: src); negPath.addLine(to: dst)
+                    }
                 }
             }
-            best.sort { abs($0.wt) > abs($1.wt) }
-            for conn in best.prefix(maxLines) {
-                let src = NetworkLayout.position(layer: srcLayer, index: conn.s)
-                let dst = NetworkLayout.position(layer: dstLayer, index: conn.d)
-                var path = Path()
-                path.move(to: src); path.addLine(to: dst)
-                context.stroke(path, with: .color(connectionColor(conn.wt).opacity(opacity)), lineWidth: 1)
-            }
+            context.stroke(posPath, with: .color(.blue.opacity(opacity)), lineWidth: lineWidth)
+            context.stroke(negPath, with: .color(.orange.opacity(opacity)), lineWidth: lineWidth)
         }
 
-        // Hidden5 -> Output: all 32
-        let outP = NetworkLayout.position(layer: .output, index: 0)
-        for i in 0..<32 {
-            let p = NetworkLayout.position(layer: .hidden5, index: i)
-            let wt = weights.w6[i]
-            var path = Path()
-            path.move(to: p); path.addLine(to: outP)
-            context.stroke(path, with: .color(connectionColor(wt).opacity(0.7)), lineWidth: 2)
-        }
-        // Hidden4 -> Hidden5: 2048, draw all strong ones
-        drawStrongest(w: weights.w5, srcLayer: .hidden4, srcCount: 64,
-                      dstLayer: .hidden5, dstCount: 32,
-                      threshold: 0.02, maxLines: 1500, opacity: 0.3)
-        // Hidden3 -> Hidden4: 8K, strongest
-        drawStrongest(w: weights.w4, srcLayer: .hidden3, srcCount: 128,
-                      dstLayer: .hidden4, dstCount: 64,
-                      threshold: 0.05, maxLines: 1500, opacity: 0.2)
-        // Hidden2 -> Hidden3: 32K, strongest
-        drawStrongest(w: weights.w3, srcLayer: .hidden2, srcCount: 256,
-                      dstLayer: .hidden3, dstCount: 128,
-                      threshold: 0.08, maxLines: 1500, opacity: 0.15)
-        // Hidden1 -> Hidden2: 131K, strongest
-        drawStrongest(w: weights.w2, srcLayer: .hidden1, srcCount: 512,
-                      dstLayer: .hidden2, dstCount: 256,
-                      threshold: 0.1, maxLines: 1500, opacity: 0.12)
-        // Input -> Hidden1: 394K, strongest
-        drawStrongest(w: weights.w1, srcLayer: .input, srcCount: 769,
-                      dstLayer: .hidden1, dstCount: 512,
-                      threshold: 0.15, maxLines: 1200, opacity: 0.2)
-    }
-
-    private func connectionColor(_ w: Float) -> Color {
-        w >= 0 ? .blue : .orange
+        // Hidden5 -> Output: 32 connections
+        drawAll(w: weights.w6, srcLayer: .hidden5, srcCount: 32,
+                dstLayer: .output, dstCount: 1, opacity: 0.6, lineWidth: 2)
+        // Hidden4 -> Hidden5: 2,048
+        drawAll(w: weights.w5, srcLayer: .hidden4, srcCount: 64,
+                dstLayer: .hidden5, dstCount: 32, opacity: 0.35, lineWidth: 1)
+        // Hidden3 -> Hidden4: 8,192
+        drawAll(w: weights.w4, srcLayer: .hidden3, srcCount: 128,
+                dstLayer: .hidden4, dstCount: 64, opacity: 0.25, lineWidth: 0.8)
+        // Hidden2 -> Hidden3: 32,768
+        drawAll(w: weights.w3, srcLayer: .hidden2, srcCount: 256,
+                dstLayer: .hidden3, dstCount: 128, opacity: 0.18, lineWidth: 0.6)
+        // Hidden1 -> Hidden2: 131,072
+        drawAll(w: weights.w2, srcLayer: .hidden1, srcCount: 512,
+                dstLayer: .hidden2, dstCount: 256, opacity: 0.12, lineWidth: 0.5)
+        // Input -> Hidden1: 393,728
+        drawAll(w: weights.w1, srcLayer: .input, srcCount: 769,
+                dstLayer: .hidden1, dstCount: 512, opacity: 0.08, lineWidth: 0.4)
     }
 
     private func drawLayer(context: inout GraphicsContext, layer: NeuronSelection.Layer, count: Int, biases: [Float]?) {
-        // Text is only readable when zoomed in — hide it when zoomed out to avoid a jumbled mess
-        let showText = zoom >= 0.7
+        // Sean's call: the text always shows and scales with the zoom, the same
+        // way the circles do — it shrinks with them when zooming out instead of
+        // vanishing. Font size is set in canvas coordinates, so the canvas
+        // scaleEffect(zoom) scales text and circles together automatically.
         for i in 0..<count {
             let p = NetworkLayout.position(layer: layer, index: i)
             let r = NetworkLayout.radius(layer: layer)
@@ -329,8 +330,7 @@ private struct NetworkCanvas: View {
 
             // The neuron's own weight (bias) inside the circle.
             // Input neurons have no weights, so they show their index.
-            // Only drawn when zoomed in enough to read — otherwise circles stay clean.
-            if r >= 10 && showText {
+            if r >= 10 {
                 let fontSize = min(r * 0.55, 14)
                 let label: String
                 if let b = bias {

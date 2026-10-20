@@ -121,8 +121,8 @@ final class NetworkNarrator: ObservableObject {
         deltas.sort { abs($0.delta) > abs($1.delta) }
 
         return deltas.prefix(limit).map { entry in
-            let dstNeuron = entry.index / 783
-            let srcIndex = entry.index % 783
+            let dstNeuron = entry.index / 911
+            let srcIndex = entry.index % 911
             let desc = "\(inputName(srcIndex)) → detector #\(dstNeuron)"
             return WeightChange(description: desc,
                                 oldValue: entry.old, newValue: entry.new)
@@ -142,6 +142,16 @@ final class NetworkNarrator: ObservableObject {
             return "en passant on \(file)-file"
         case 781: return "50-move clock"
         case 782: return "check status"
+        case 783..<847:
+            let sq = i - 783
+            let file = String(UnicodeScalar(97 + sq % 8)!)
+            let rank = sq / 8 + 1
+            return "\(file)\(rank) attacked by White"
+        case 847..<911:
+            let sq = i - 847
+            let file = String(UnicodeScalar(97 + sq % 8)!)
+            let rank = sq / 8 + 1
+            return "\(file)\(rank) attacked by Black"
         default: break
         }
         let side = i < 384 ? "White" : "Black"

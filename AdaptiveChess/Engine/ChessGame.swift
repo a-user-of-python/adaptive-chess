@@ -60,6 +60,13 @@ public class ChessGame {
     public var enPassantFile: Int? { enPassantTarget?.file }
     public var halfmovesSincePawnOrCapture: Int { halfmoveClock }
 
+    /// Attack map for the neural network: which squares each side attacks.
+    /// This is the "why" — the network doesn't just see where pieces are,
+    /// it sees what they threaten.
+    public func isSquareAttacked(_ sq: Square, by attacker: PieceColor) -> Bool {
+        isAttacked(sq, by: attacker)
+    }
+
     /// Everything needed to perfectly reverse one makeMove.
     private struct UndoInfo {
         let move: Move

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Zoomable visual explorer for the profile's neural network (783 → 512 → 256 → 128 → 64 → 32 → 1).
+// Zoomable visual explorer for the profile's neural network (911 → 512 → 256 → 128 → 64 → 32 → 1).
 // Neurons are circles connected by lines; pinch to zoom and everything
 // (circles, lines, text) scales together. Tap a neuron for its weights.
 // The bottom meter shows how much the weights moved in the last game.
@@ -83,7 +83,7 @@ struct NetworkView: View {
                 VStack(spacing: 6) {
                     Text(String(format: "%.6f", change))
                         .font(.system(.title2, design: .monospaced).bold())
-                    Text("\(store.lastChangedWeightCount) of 576,001 weights moved")
+                    Text("\(store.lastChangedWeightCount) of 641,537 weights moved")
                         .font(.callout)
                         .foregroundColor(.secondary)
                     GeometryReader { geo in
@@ -242,7 +242,7 @@ private enum NetworkLayout {
     static func hitTest(_ point: CGPoint) -> NeuronSelection? {
         // Check smallest layers first (they're on top visually)
         let checks: [(NeuronSelection.Layer, Int)] = [
-            (.output, 1), (.hidden5, 32), (.hidden4, 64), (.hidden3, 128), (.hidden2, 256), (.hidden1, 512), (.input, 783),
+            (.output, 1), (.hidden5, 32), (.hidden4, 64), (.hidden3, 128), (.hidden2, 256), (.hidden1, 512), (.input, 911),
         ]
         for (layer, count) in checks {
             let r = radius(layer: layer)
@@ -268,7 +268,7 @@ private struct NetworkCanvas: View {
     var body: some View {
         Canvas { context, size in
             drawConnections(context: &context)
-            drawLayer(context: &context, layer: .input, count: 783, biases: nil)
+            drawLayer(context: &context, layer: .input, count: 911, biases: nil)
             drawLayer(context: &context, layer: .hidden1, count: 512, biases: weights.b1)
             drawLayer(context: &context, layer: .hidden2, count: 256, biases: weights.b2)
             drawLayer(context: &context, layer: .hidden3, count: 128, biases: weights.b3)
@@ -338,7 +338,7 @@ private struct NetworkCanvas: View {
         drawAll(w: weights.w2, srcLayer: .hidden1, srcCount: 512,
                 dstLayer: .hidden2, dstCount: 256, opacity: 0.12, lineWidth: 0.5)
         // Input -> Hidden1: 393,728
-        drawAll(w: weights.w1, srcLayer: .input, srcCount: 783,
+        drawAll(w: weights.w1, srcLayer: .input, srcCount: 911,
                 dstLayer: .hidden1, dstCount: 512, opacity: 0.08, lineWidth: 0.4)
     }
 
@@ -380,7 +380,7 @@ private struct NetworkCanvas: View {
 
     private func drawLabels(context: inout GraphicsContext) {
         let labels: [(String, CGFloat)] = [
-            ("Input · 783", NetworkLayout.inputX),
+            ("Input · 911", NetworkLayout.inputX),
             ("Hidden 1 · 512", NetworkLayout.hidden1X),
             ("Hidden 2 · 256", NetworkLayout.hidden2X),
             ("Hidden 3 · 128", NetworkLayout.hidden3X),
@@ -469,7 +469,7 @@ private struct NeuronDetailView: View {
         case .input:
             return Text(inputDescription(selection.index))
         case .hidden1:
-            return Text("Takes all 783 inputs, weighs each one, and fires when its pattern is on the board.")
+            return Text("Takes all 911 inputs, weighs each one, and fires when its pattern is on the board.")
         case .hidden2:
             return Text("Combines the 512 pattern detectors into higher-level strategy signals.")
         case .hidden3:
@@ -495,6 +495,16 @@ private struct NeuronDetailView: View {
             return "1 when en passant is available on the \(file)-file."
         case 781: return "Half-moves since the last pawn move or capture, /100 (50-move rule)."
         case 782: return "1 when the side to move is in check."
+        case 783..<847:
+            let sq = i - 783
+            let file = String(UnicodeScalar(97 + sq % 8)!)
+            let rank = sq / 8 + 1
+            return "1 when \(file)\(rank) is attacked by White."
+        case 847..<911:
+            let sq = i - 847
+            let file = String(UnicodeScalar(97 + sq % 8)!)
+            let rank = sq / 8 + 1
+            return "1 when \(file)\(rank) is attacked by Black."
         default: break
         }
         let pieceNames = ["pawn", "knight", "bishop", "rook", "queen", "king"]
@@ -520,6 +530,16 @@ private struct NeuronDetailView: View {
                 return "en-passant-on-\(file)-file"
             case 781: return "halfmove-clock-50mr"
             case 782: return "side-to-move-in-check"
+            case 783..<847:
+                let sq = i - 783
+                let file = String(UnicodeScalar(97 + sq % 8)!)
+                let rank = sq / 8 + 1
+                return "attacked-by-W-\(file)\(rank)"
+            case 847..<911:
+                let sq = i - 847
+                let file = String(UnicodeScalar(97 + sq % 8)!)
+                let rank = sq / 8 + 1
+                return "attacked-by-B-\(file)\(rank)"
             default: break
             }
             let side = i < 384 ? "W" : "B"
@@ -549,8 +569,8 @@ private struct NeuronDetailView: View {
         let raw: [Float]
         switch selection.layer {
         case .hidden1:
-            let start = selection.index * 783
-            raw = Array(w.w1[start..<(start + 783)])
+            let start = selection.index * 911
+            raw = Array(w.w1[start..<(start + 911)])
         case .hidden2:
             let start = selection.index * 512
             raw = Array(w.w2[start..<(start + 512)])

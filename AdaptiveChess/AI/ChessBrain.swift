@@ -205,13 +205,19 @@ final class ChessBrain {
 
 // MARK: - Position encoding
 
-/// 783-feature board encoding: 64 squares × 12 one-hot features
+/// 911-feature board encoding: 64 squares × 12 one-hot features
 /// (6 piece types × 2 colors), plus side-to-move at index 768
 /// (+1 White to move / −1 Black to move).
 enum PositionEncoder {
-    /// Full 783-input encoding — every distinct element of chess state:
+    /// Full 911-input encoding — every distinct element of chess state:
     /// 768 piece squares + side to move + 4 castling rights +
-    /// 8 en-passant file one-hot + halfmove clock + check flag.
+    /// 8 en-passant file one-hot + halfmove clock + check flag +
+    /// 128 attack map (64 squares × attacked-by-white, 64 × attacked-by-black).
+    ///
+    /// The attack map is the "why": the network doesn't just see WHERE
+    /// pieces are, it sees WHAT THEY THREATEN. A knight on f3 is just a
+    /// knight — but a knight on f3 attacking h2 next to an undefended king
+    /// is a mating threat. The network can now learn that distinction.
     static func encode(_ game: ChessGame) -> [Float] {
         var x = [Float](repeating: 0, count: NeuralNet.inputSize)
         for rank in 0..<8 {
@@ -242,6 +248,16 @@ enum PositionEncoder {
         x[781] = min(Float(game.halfmovesSincePawnOrCapture) / 100.0, 1.0)
         // Is the side to move in check?
         x[782] = game.isInCheck(game.sideToMove) ? 1 : 0
+        // Attack maps: 64 squares attacked-by-white, 64 attacked-by-black.
+        // This is what lets the network learn WHY a piece is dangerous.
+        for rank in 0..<8 {
+            for file in 0..<8 {
+                let sq = Square(file: file, rank: rank)
+                let idx = rank * 8 + file
+                if game.isSquareAttacked(sq, by: .white) { x[783 + idx] = 1 }
+                if game.isSquareAttacked(sq, by: .black) { x[847 + idx] = 1 }
+            }
+        }
         return x
     }
 }

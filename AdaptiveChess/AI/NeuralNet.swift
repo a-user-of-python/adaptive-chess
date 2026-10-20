@@ -4,10 +4,10 @@ import Foundation
 /// from scratch in Swift (no Core ML) so the weights can live inside the
 /// player's personal profile file.
 ///
-/// Input: 783 floats — 64 squares × 12 one-hot features (6 piece types ×
+/// Input: 911 floats — 64 squares × 12 one-hot features (6 piece types ×
 /// 2 colors), plus side-to-move at index 768 (+1 White / −1 Black).
 ///
-/// Architecture: 783 → 512 → 256 → 128 → 64 → 32 → 1. Hidden layers use
+/// Architecture: 911 → 512 → 256 → 128 → 64 → 32 → 1. Hidden layers use
 /// ReLU, the output uses tanh, so the evaluation is always in [−1, 1]
 /// **from White's perspective** (+1 = White winning, −1 = Black winning).
 ///
@@ -17,14 +17,14 @@ final class NeuralNet: Codable {
 
     // MARK: - Architecture
 
-    static let inputSize = 783
+    static let inputSize = 911
     static let hidden1Size = 512
     static let hidden2Size = 256
     static let hidden3Size = 128
     static let hidden4Size = 64
     static let hidden5Size = 32
 
-    // w1[512][783], b1[512]
+    // w1[512][911], b1[512]
     // w2[256][512], b2[256]
     // w3[128][256], b3[128]
     // w4[64][128],  b4[64]

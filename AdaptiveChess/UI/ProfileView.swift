@@ -33,6 +33,7 @@ struct ProfileView: View {
                         piecesSection
                     }
                     jsonSection
+                    networkThoughtsSection
                     deleteSection
                 }
                 .padding()
@@ -399,6 +400,29 @@ struct ProfileView: View {
         }
     }
 
+    // MARK: - What the network thinks is new
+
+    /// Plain-language summary from the on-device AI, reset every game.
+    /// Also saved to network-thoughts.txt in the app's documents.
+    private var networkThoughtsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("What Your Network Thinks Is New")
+            if #available(iOS 26, *) {
+                NetworkThoughtsCard()
+            } else {
+                Text("Requires iOS 26 with Apple Intelligence for AI summaries.")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .padding()
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(16)
+            }
+            Text("Written by the on-device AI after every game. Also saved as network-thoughts.txt — the file resets each game.")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+        }
+    }
+
     // MARK: - Weekly delete
 
     private var deleteSection: some View {
@@ -450,8 +474,7 @@ struct ProfileView: View {
 
     // MARK: - Helpers
 
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
+    private func sectionTitle(_ text: String) -> some View {        Text(text)
             .font(.title2)
             .bold()
             .accessibilityAddTraits(.isHeader)
@@ -468,5 +491,32 @@ struct ProfileView: View {
                 .foregroundColor(.secondary)
         }
         .padding(.vertical, 10)
+    }
+}
+
+// MARK: - Network thoughts card (iOS 26+)
+
+/// Reactive card showing the on-device AI's summary of what changed
+/// in the network after the last game. Gated to iOS 26+ because
+/// NetworkNarrator needs Foundation Models.
+@available(iOS 26, *)
+private struct NetworkThoughtsCard: View {
+    @ObservedObject private var narrator = NetworkNarrator.shared
+
+    var body: some View {
+        if let summary = narrator.latestSummary {
+            Text(summary)
+                .font(.body)
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(16)
+        } else {
+            Text("Finish a game and the on-device AI will explain what changed in your network.")
+                .font(.body)
+                .foregroundColor(.secondary)
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(16)
+        }
     }
 }

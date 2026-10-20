@@ -19,8 +19,8 @@ struct OpeningRecord: Codable {
 /// how you play." The AI trains these after each game and they persist in the
 /// same JSON as the human-readable stats.
 ///
-/// Architecture 769→128→32→1 (MLP):
-/// - w1: 769*128 weights, b1: 128 biases  (input → hidden 1)
+/// Architecture 783→512→256→128→64→32→1 (MLP):
+/// - w1: 783*512 weights, b1: 128 biases  (input → hidden 1)
 /// - w2: 128*32 weights,  b2: 32 biases   (hidden 1 → hidden 2)
 /// - w3: 32*1 weights,    b3: 1 bias      (hidden 2 → output)
 /// `nil` means no trained network yet — the AI starts from random weights.
@@ -38,8 +38,8 @@ struct NetworkWeights: Codable {
     var w6: [Float]
     var b6: [Float]
 
-    /// Expected element counts for the 769→512→256→128→64→32→1 architecture (~569k params).
-    static let w1Count = 769 * 512
+    /// Expected element counts for the 783→512→256→128→64→32→1 architecture (~569k params).
+    static let w1Count = 783 * 512
     static let b1Count = 512
     static let w2Count = 512 * 256
     static let b2Count = 256

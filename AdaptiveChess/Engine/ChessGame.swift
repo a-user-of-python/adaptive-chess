@@ -51,6 +51,15 @@ public class ChessGame {
     private var halfmoveClock: Int
     private var fullmoveNumber: Int
 
+    // MARK: - Neural network inputs (read-only snapshots of game state)
+
+    public var whiteCanCastleKingside: Bool { castling.whiteKingside }
+    public var whiteCanCastleQueenside: Bool { castling.whiteQueenside }
+    public var blackCanCastleKingside: Bool { castling.blackKingside }
+    public var blackCanCastleQueenside: Bool { castling.blackQueenside }
+    public var enPassantFile: Int? { enPassantTarget?.file }
+    public var halfmovesSincePawnOrCapture: Int { halfmoveClock }
+
     /// Everything needed to perfectly reverse one makeMove.
     private struct UndoInfo {
         let move: Move

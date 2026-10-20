@@ -205,10 +205,13 @@ final class ChessBrain {
 
 // MARK: - Position encoding
 
-/// 769-feature board encoding: 64 squares × 12 one-hot features
+/// 783-feature board encoding: 64 squares × 12 one-hot features
 /// (6 piece types × 2 colors), plus side-to-move at index 768
 /// (+1 White to move / −1 Black to move).
 enum PositionEncoder {
+    /// Full 783-input encoding — every distinct element of chess state:
+    /// 768 piece squares + side to move + 4 castling rights +
+    /// 8 en-passant file one-hot + halfmove clock + check flag.
     static func encode(_ game: ChessGame) -> [Float] {
         var x = [Float](repeating: 0, count: NeuralNet.inputSize)
         for rank in 0..<8 {
@@ -225,7 +228,20 @@ enum PositionEncoder {
                 }
             }
         }
-        x[NeuralNet.inputSize - 1] = (game.sideToMove == .white) ? 1 : -1
+        x[768] = (game.sideToMove == .white) ? 1 : -1
+        // Castling rights
+        x[769] = game.whiteCanCastleKingside ? 1 : 0
+        x[770] = game.whiteCanCastleQueenside ? 1 : 0
+        x[771] = game.blackCanCastleKingside ? 1 : 0
+        x[772] = game.blackCanCastleQueenside ? 1 : 0
+        // En passant file (one-hot over 8 files; all zero when none)
+        if let epFile = game.enPassantFile, (0..<8).contains(epFile) {
+            x[773 + epFile] = 1
+        }
+        // Halfmove clock, normalized (50-move rule triggers at 100)
+        x[781] = min(Float(game.halfmovesSincePawnOrCapture) / 100.0, 1.0)
+        // Is the side to move in check?
+        x[782] = game.isInCheck(game.sideToMove) ? 1 : 0
         return x
     }
 }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Zoomable visual explorer for the profile's neural network (769 → 512 → 256 → 128 → 64 → 32 → 1).
+// Zoomable visual explorer for the profile's neural network (783 → 512 → 256 → 128 → 64 → 32 → 1).
 // Neurons are circles connected by lines; pinch to zoom and everything
 // (circles, lines, text) scales together. Tap a neuron for its weights.
 // The bottom meter shows how much the weights moved in the last game.
@@ -83,7 +83,7 @@ struct NetworkView: View {
                 VStack(spacing: 6) {
                     Text(String(format: "%.6f", change))
                         .font(.system(.title2, design: .monospaced).bold())
-                    Text("\(store.lastChangedWeightCount) of 568,833 weights moved")
+                    Text("\(store.lastChangedWeightCount) of 576,001 weights moved")
                         .font(.callout)
                         .foregroundColor(.secondary)
                     GeometryReader { geo in
@@ -214,7 +214,7 @@ private enum NetworkLayout {
     static func hitTest(_ point: CGPoint) -> NeuronSelection? {
         // Check smallest layers first (they're on top visually)
         let checks: [(NeuronSelection.Layer, Int)] = [
-            (.output, 1), (.hidden5, 32), (.hidden4, 64), (.hidden3, 128), (.hidden2, 256), (.hidden1, 512), (.input, 769),
+            (.output, 1), (.hidden5, 32), (.hidden4, 64), (.hidden3, 128), (.hidden2, 256), (.hidden1, 512), (.input, 783),
         ]
         for (layer, count) in checks {
             let r = radius(layer: layer)
@@ -240,7 +240,7 @@ private struct NetworkCanvas: View {
     var body: some View {
         Canvas { context, size in
             drawConnections(context: &context)
-            drawLayer(context: &context, layer: .input, count: 769, biases: nil)
+            drawLayer(context: &context, layer: .input, count: 783, biases: nil)
             drawLayer(context: &context, layer: .hidden1, count: 512, biases: weights.b1)
             drawLayer(context: &context, layer: .hidden2, count: 256, biases: weights.b2)
             drawLayer(context: &context, layer: .hidden3, count: 128, biases: weights.b3)
@@ -310,7 +310,7 @@ private struct NetworkCanvas: View {
         drawAll(w: weights.w2, srcLayer: .hidden1, srcCount: 512,
                 dstLayer: .hidden2, dstCount: 256, opacity: 0.12, lineWidth: 0.5)
         // Input -> Hidden1: 393,728
-        drawAll(w: weights.w1, srcLayer: .input, srcCount: 769,
+        drawAll(w: weights.w1, srcLayer: .input, srcCount: 783,
                 dstLayer: .hidden1, dstCount: 512, opacity: 0.08, lineWidth: 0.4)
     }
 
@@ -352,7 +352,7 @@ private struct NetworkCanvas: View {
 
     private func drawLabels(context: inout GraphicsContext) {
         let labels: [(String, CGFloat)] = [
-            ("Input · 769", NetworkLayout.inputX),
+            ("Input · 783", NetworkLayout.inputX),
             ("Hidden 1 · 512", NetworkLayout.hidden1X),
             ("Hidden 2 · 256", NetworkLayout.hidden2X),
             ("Hidden 3 · 128", NetworkLayout.hidden3X),
@@ -441,7 +441,7 @@ private struct NeuronDetailView: View {
         case .input:
             return Text(inputDescription(selection.index))
         case .hidden1:
-            return Text("Takes all 769 inputs, weighs each one, and fires when its pattern is on the board.")
+            return Text("Takes all 783 inputs, weighs each one, and fires when its pattern is on the board.")
         case .hidden2:
             return Text("Combines the 512 pattern detectors into higher-level strategy signals.")
         case .hidden3:
@@ -456,7 +456,19 @@ private struct NeuronDetailView: View {
     }
 
     private func inputDescription(_ i: Int) -> String {
-        if i == 768 { return "1 when it's White to move, 0 for Black." }
+        switch i {
+        case 768: return "1 when it's White to move, -1 for Black."
+        case 769: return "1 when White can still castle kingside."
+        case 770: return "1 when White can still castle queenside."
+        case 771: return "1 when Black can still castle kingside."
+        case 772: return "1 when Black can still castle queenside."
+        case 773..<781:
+            let file = String(UnicodeScalar(97 + (i - 773))!)
+            return "1 when en passant is available on the \(file)-file."
+        case 781: return "Half-moves since the last pawn move or capture, /100 (50-move rule)."
+        case 782: return "1 when the side to move is in check."
+        default: break
+        }
         let pieceNames = ["pawn", "knight", "bishop", "rook", "queen", "king"]
         let side = i < 384 ? "White" : "Black"
         let piece = pieceNames[(i % 384) / 64]
@@ -469,7 +481,19 @@ private struct NeuronDetailView: View {
     private func describeInput(_ i: Int) -> String {
         switch selection.layer {
         case .hidden1:
-            if i == 768 { return "side-to-move" }
+            switch i {
+            case 768: return "side-to-move"
+            case 769: return "white-can-castle-kingside"
+            case 770: return "white-can-castle-queenside"
+            case 771: return "black-can-castle-kingside"
+            case 772: return "black-can-castle-queenside"
+            case 773..<781:
+                let file = String(UnicodeScalar(97 + (i - 773))!)
+                return "en-passant-on-\(file)-file"
+            case 781: return "halfmove-clock-50mr"
+            case 782: return "side-to-move-in-check"
+            default: break
+            }
             let side = i < 384 ? "W" : "B"
             let pieces = ["P", "N", "B", "R", "Q", "K"]
             let piece = pieces[(i % 384) / 64]
@@ -497,8 +521,8 @@ private struct NeuronDetailView: View {
         let raw: [Float]
         switch selection.layer {
         case .hidden1:
-            let start = selection.index * 769
-            raw = Array(w.w1[start..<(start + 769)])
+            let start = selection.index * 783
+            raw = Array(w.w1[start..<(start + 783)])
         case .hidden2:
             let start = selection.index * 512
             raw = Array(w.w2[start..<(start + 512)])

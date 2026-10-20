@@ -260,6 +260,45 @@ final class ChessBrain {
                 boot2 = network.forwardMulti(f2)[0]
             }
         }
+
+        // ---- Blunder-focused extra training ----
+        // If the AI keeps falling for the same trap, normal training isn't
+        // punishing it enough: the trap position gets diluted among all
+        // other positions, and 70% of its target is the network's own
+        // (wrong) opinion. So we find blunders explicitly and hammer them.
+        //
+        // A blunder = the AI's eval dropped sharply after its move
+        // (opponent's reply was much better than the AI expected).
+        // For blunders we use pure outcome (λ=0, no bootstrapping the
+        // wrong opinion), higher lr, and more epochs.
+        let aiIsWhite = (userColor == .black)
+        let aiSign: Float = aiIsWhite ? 1 : -1  // +1 if AI is White
+        let blunderLr: Float = 0.05
+        let blunderEpochs = 8
+        let blunderThreshold: Float = 0.35
+
+        for idx in positions.indices {
+            // Only the AI's moves (even plies = White, odd plies = Black).
+            let isAiMove = aiIsWhite ? (idx % 2 == 0) : (idx % 2 == 1)
+            guard isAiMove else { continue }
+            // Need the opponent's reply to exist.
+            guard idx + 2 < positions.count else { continue }
+
+            let before = network.forwardMulti(positions[idx])[0]
+            let after = network.forwardMulti(positions[idx + 2])[0]
+            // Swing from the AI's perspective (positive = good for AI).
+            let swing = (after - before) * aiSign
+
+            if swing < -blunderThreshold {
+                // Blunder confirmed. Train all 3 horizons toward the true
+                // outcome — no bootstrapping, just "this was bad."
+                for _ in 0..<blunderEpochs {
+                    network.train(x: positions[idx],
+                                  targets: [finalResult, finalResult, finalResult],
+                                  lr: blunderLr)
+                }
+            }
+        }
     }
 
     // MARK: - Persistence

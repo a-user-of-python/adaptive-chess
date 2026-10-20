@@ -49,8 +49,8 @@ struct NetworkWeights: Codable {
     static let b4Count = 64
     static let w5Count = 64 * 32
     static let b5Count = 32
-    static let w6Count = 32
-    static let b6Count = 1
+    static let w6Count = 32 * 3
+    static let b6Count = 3
 
     /// True when every array matches the architecture. Guards against
     /// loading weights saved by a different network shape.

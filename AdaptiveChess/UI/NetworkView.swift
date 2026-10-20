@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Zoomable visual explorer for the profile's neural network (911 → 512 → 256 → 128 → 64 → 32 → 1).
+// Zoomable visual explorer for the profile's neural network (911 → 512 → 256 → 128 → 64 → 32 → 3).
 // Neurons are circles connected by lines; pinch to zoom and everything
 // (circles, lines, text) scales together. Tap a neuron for its weights.
 // The bottom meter shows how much the weights moved in the last game.
@@ -83,7 +83,7 @@ struct NetworkView: View {
                 VStack(spacing: 6) {
                     Text(String(format: "%.6f", change))
                         .font(.system(.title2, design: .monospaced).bold())
-                    Text("\(store.lastChangedWeightCount) of 641,537 weights moved")
+                    Text("\(store.lastChangedWeightCount) of 641,603 weights moved")
                         .font(.callout)
                         .foregroundColor(.secondary)
                     GeometryReader { geo in
@@ -222,7 +222,9 @@ private enum NetworkLayout {
             let y = topMargin + 360 + CGFloat(row) * hidden5Cell + hidden5Cell / 2
             return CGPoint(x: x, y: y)
         case .output:
-            return CGPoint(x: outputX, y: topMargin + 440)
+            // 3 horizon outputs stacked vertically: now, +1 move, +2 moves.
+            let oy = topMargin + 380 + CGFloat(index) * (outputDiameter + 30)
+            return CGPoint(x: outputX, y: oy)
         }
     }
 
@@ -242,7 +244,7 @@ private enum NetworkLayout {
     static func hitTest(_ point: CGPoint) -> NeuronSelection? {
         // Check smallest layers first (they're on top visually)
         let checks: [(NeuronSelection.Layer, Int)] = [
-            (.output, 1), (.hidden5, 32), (.hidden4, 64), (.hidden3, 128), (.hidden2, 256), (.hidden1, 512), (.input, 911),
+            (.output, 3), (.hidden5, 32), (.hidden4, 64), (.hidden3, 128), (.hidden2, 256), (.hidden1, 512), (.input, 911),
         ]
         for (layer, count) in checks {
             let r = radius(layer: layer)
@@ -274,7 +276,7 @@ private struct NetworkCanvas: View {
             drawLayer(context: &context, layer: .hidden3, count: 128, biases: weights.b3)
             drawLayer(context: &context, layer: .hidden4, count: 64, biases: weights.b4)
             drawLayer(context: &context, layer: .hidden5, count: 32, biases: weights.b5)
-            drawLayer(context: &context, layer: .output, count: 1, biases: weights.b6)
+            drawLayer(context: &context, layer: .output, count: 3, biases: weights.b6)
             drawLabels(context: &context)
         }
         .frame(width: NetworkLayout.canvasWidth, height: NetworkLayout.canvasHeight)
@@ -324,7 +326,7 @@ private struct NetworkCanvas: View {
 
         // Hidden5 -> Output: 32 connections
         drawAll(w: weights.w6, srcLayer: .hidden5, srcCount: 32,
-                dstLayer: .output, dstCount: 1, opacity: 0.6, lineWidth: 2)
+                dstLayer: .output, dstCount: 3, opacity: 0.6, lineWidth: 2)
         // Hidden4 -> Hidden5: 2,048
         drawAll(w: weights.w5, srcLayer: .hidden4, srcCount: 64,
                 dstLayer: .hidden5, dstCount: 32, opacity: 0.35, lineWidth: 1)
@@ -386,7 +388,7 @@ private struct NetworkCanvas: View {
             ("Hidden 3 · 128", NetworkLayout.hidden3X),
             ("Hidden 4 · 64", NetworkLayout.hidden4X),
             ("Hidden 5 · 32", NetworkLayout.hidden5X),
-            ("Output · 1", NetworkLayout.outputX),
+            ("Output · 3", NetworkLayout.outputX),
         ]
         for (text, x) in labels {
             let t = Text(text).font(.system(size: 28, weight: .bold))
@@ -460,7 +462,13 @@ private struct NeuronDetailView: View {
         case .hidden3: return "Hidden 3 · Neuron #\(selection.index)"
         case .hidden4: return "Hidden 4 · Neuron #\(selection.index)"
         case .hidden5: return "Hidden 5 · Neuron #\(selection.index)"
-        case .output: return "Output neuron"
+        case .output:
+            switch selection.index {
+            case 0: return "Output · Now"
+            case 1: return "Output · +1 move"
+            case 2: return "Output · +2 moves"
+            default: return "Output neuron"
+            }
         }
     }
 
@@ -479,7 +487,16 @@ private struct NeuronDetailView: View {
         case .hidden5:
             return Text("Final reasoning layer — 32 high-level evaluations feed the output.")
         case .output:
-            return Text("The final verdict: positive means good for the side to move, negative means bad. This is the number the AI uses to pick moves.")
+            switch selection.index {
+            case 0:
+                return Text("Value of this position right now. Positive = good for White, negative = good for Black.")
+            case 1:
+                return Text("The network's prediction of the position value 1 full move from now — its internal lookahead, no search tree.")
+            case 2:
+                return Text("The network's prediction 2 full moves from now. This is how it 'thinks ahead' without ever generating a move.")
+            default:
+                return Text("Output neuron")
+            }
         }
     }
 
@@ -584,7 +601,8 @@ private struct NeuronDetailView: View {
             let start = selection.index * 64
             raw = Array(w.w5[start..<(start + 64)])
         case .output:
-            raw = w.w6
+            let start = selection.index * 32
+            raw = Array(w.w6[start..<(start + 32)])
         case .input:
             return nil
         }
@@ -603,7 +621,9 @@ private struct NeuronDetailView: View {
         case .hidden3: return w.b3[selection.index]
         case .hidden4: return w.b4[selection.index]
         case .hidden5: return w.b5[selection.index]
-        case .output: return w.b6.first
+        case .output:
+            guard selection.index < w.b6.count else { return nil }
+            return w.b6[selection.index]
         case .input: return nil
         }
     }

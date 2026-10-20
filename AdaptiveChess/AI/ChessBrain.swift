@@ -61,7 +61,10 @@ final class ChessBrain {
             } else if blunderCheck {
                 value = worstReplyValue(game: game)
             } else {
-                value = network.forward(PositionEncoder.encode(game))
+                // Search inside the net: one forward pass predicts now,
+                // +1 move, +2 moves. Weight toward the near future.
+                let horizons = network.forwardMulti(PositionEncoder.encode(game))
+                value = 0.5 * horizons[0] + 0.3 * horizons[1] + 0.2 * horizons[2]
             }
             game.undoMove()
 
@@ -94,7 +97,10 @@ final class ChessBrain {
             game.makeMove(r)
             let v: Float = game.isGameOver
                 ? terminalValue(game)
-                : network.forward(PositionEncoder.encode(game))
+                : {
+                    let h = network.forwardMulti(PositionEncoder.encode(game))
+                    return 0.5 * h[0] + 0.3 * h[1] + 0.2 * h[2]
+                }()
             game.undoMove()
             if oppIsWhite ? (v > worst) : (v < worst) {
                 worst = v
@@ -171,12 +177,38 @@ final class ChessBrain {
         let lr: Float = 0.015
         let epochs = 3
 
+        // Three horizons, all from White's perspective:
+        //   out[0] = value now, out[1] = value 2 plies out, out[2] = value 4 plies out.
+        // The network learns to "see the future" internally — no move tree,
+        // no external search. Each position's future targets come from the
+        // actual positions reached later in THIS game.
         for _ in 0..<epochs {
-            var bootstrap = finalResult
-            for x in positions.reversed() {
-                let target = lambda * bootstrap + (1 - lambda) * finalResult
-                network.train(x: x, target: target, lr: lr)
-                bootstrap = network.forward(x)
+            // Bootstrap from the end, per horizon.
+            var boot0 = finalResult
+            var boot1 = finalResult
+            var boot2 = finalResult
+            for idx in positions.indices.reversed() {
+                let x = positions[idx]
+                // Future positions for the lookahead targets (clamped to game end).
+                let f1 = positions[min(idx + 2, positions.count - 1)]
+                let f2 = positions[min(idx + 4, positions.count - 1)]
+
+                let t0 = lambda * boot0 + (1 - lambda) * finalResult
+                // The +1-move target: what the network itself predicted for
+                // the position 2 plies out, anchored to the final result.
+                let t1 = lambda * boot1 + (1 - lambda) * finalResult
+                let t2 = lambda * boot2 + (1 - lambda) * finalResult
+
+                network.train(x: x, targets: [t0, t1, t2], lr: lr)
+
+                let preds = network.forwardMulti(x)
+                boot0 = preds[0]
+                // Bootstrap the future horizons from the network's own
+                // predictions at the future positions — this teaches it
+                // temporal consistency: "what I predict for 2 moves out
+                // should match what I predict when I get there."
+                boot1 = network.forwardMulti(f1)[0]
+                boot2 = network.forwardMulti(f2)[0]
             }
         }
     }

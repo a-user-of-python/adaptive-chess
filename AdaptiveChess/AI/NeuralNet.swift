@@ -7,11 +7,16 @@ import Foundation
 /// Input: 911 floats — 64 squares × 12 one-hot features (6 piece types ×
 /// 2 colors), plus side-to-move at index 768 (+1 White / −1 Black).
 ///
-/// Architecture: 911 → 512 → 256 → 128 → 64 → 32 → 1. Hidden layers use
-/// ReLU, the output uses tanh, so the evaluation is always in [−1, 1]
+/// Architecture: 911 → 512 → 256 → 128 → 64 → 32 → 3. Hidden layers use
+/// ReLU, the outputs use tanh, so each evaluation is in [−1, 1]
 /// **from White's perspective** (+1 = White winning, −1 = Black winning).
 ///
-/// ~569k parameters. One forward pass is ~569k multiply-adds — still
+/// Three outputs = "search inside the net": a single forward pass predicts
+/// the position value NOW, 1 full move from now, and 2 full moves from now.
+/// No move generation, no game tree — the network learns to see the future
+/// internally, purely from its weights.
+///
+/// ~641k parameters. One forward pass is ~641k multiply-adds — still
 /// trivial for an iPhone, even for 1-ply reply checks.
 final class NeuralNet: Codable {
 
@@ -23,13 +28,14 @@ final class NeuralNet: Codable {
     static let hidden3Size = 128
     static let hidden4Size = 64
     static let hidden5Size = 32
+    static let outputSize = 3
 
     // w1[512][911], b1[512]
     // w2[256][512], b2[256]
     // w3[128][256], b3[128]
     // w4[64][128],  b4[64]
     // w5[32][64],   b5[32]
-    // w6[1][32],    b6[1]
+    // w6[3][32],    b6[3]
     var w1: [[Float]]; var b1: [Float]
     var w2: [[Float]]; var b2: [Float]
     var w3: [[Float]]; var b3: [Float]
@@ -67,14 +73,23 @@ final class NeuralNet: Codable {
         b4 = [Float](repeating: 0, count: nH4)
         w5 = (0..<nH5).map { _ in (0..<nH4).map { _ in rand(fanIn: nH4, fanOut: nH5, relu: true) } }
         b5 = [Float](repeating: 0, count: nH5)
-        w6 = (0..<1).map { _ in (0..<nH5).map { _ in rand(fanIn: nH5, fanOut: 1, relu: false) } }
-        b6 = [Float](repeating: 0, count: 1)
+        w6 = (0..<NeuralNet.outputSize).map { _ in (0..<nH5).map { _ in rand(fanIn: nH5, fanOut: NeuralNet.outputSize, relu: false) } }
+        b6 = [Float](repeating: 0, count: NeuralNet.outputSize)
     }
 
     // MARK: - Forward pass
 
-    /// Evaluate a position. Returns a value in [−1, 1] from White's perspective.
+    /// Evaluate a position. Returns the "now" value in [−1, 1] from White's perspective.
+    /// For the full 3-horizon prediction, use forwardMulti.
     func forward(_ x: [Float]) -> Float {
+        forwardMulti(x)[0]
+    }
+
+    /// Single forward pass returning all 3 horizon predictions:
+    /// [0] = value now, [1] = predicted value 1 full move out,
+    /// [2] = predicted value 2 full moves out. All from White's perspective.
+    /// This is the "search inside the net" — no move generation, no tree.
+    func forwardMulti(_ x: [Float]) -> [Float] {
         let nIn = NeuralNet.inputSize
         let nH1 = NeuralNet.hidden1Size
         let nH2 = NeuralNet.hidden2Size
@@ -118,16 +133,23 @@ final class NeuralNet: Codable {
             h5[i] = s > 0 ? s : 0
         }
 
-        var z = b6[0]
-        let row = w6[0]
-        for j in 0..<nH5 { z += row[j] * h5[j] }
-        return tanh(z)
+        var z = [Float](repeating: 0, count: NeuralNet.outputSize)
+        for k in 0..<NeuralNet.outputSize {
+            var s = b6[k]
+            let row = w6[k]
+            for j in 0..<nH5 { s += row[j] * h5[j] }
+            z[k] = tanh(s)
+        }
+        return z
     }
 
     // MARK: - Training
 
-    /// One SGD step on mean-squared error: L = (target − out)².
-    func train(x: [Float], target: Float, lr: Float) {
+    /// One SGD step on mean-squared error over all 3 horizons:
+    /// L = Σ(target[k] − out[k])².
+    func train(x: [Float], targets: [Float], lr: Float) {
+        precondition(targets.count == NeuralNet.outputSize,
+                     "train needs exactly \(NeuralNet.outputSize) targets")
         let nIn = NeuralNet.inputSize
         let nH1 = NeuralNet.hidden1Size
         let nH2 = NeuralNet.hidden2Size
@@ -176,26 +198,37 @@ final class NeuralNet: Codable {
             for j in 0..<nH4 { s += row[j] * h4[j] }
             z5[i] = s; h5[i] = s > 0 ? s : 0
         }
-        var z6 = b6[0]
-        do {
-            let row = w6[0]
-            for j in 0..<nH5 { z6 += row[j] * h5[j] }
+        // Output layer: 3 horizons. Pre-activations then tanh.
+        var z6 = [Float](repeating: 0, count: NeuralNet.outputSize)
+        var out = [Float](repeating: 0, count: NeuralNet.outputSize)
+        for k in 0..<NeuralNet.outputSize {
+            var s = b6[k]
+            let row = w6[k]
+            for j in 0..<nH5 { s += row[j] * h5[j] }
+            z6[k] = s
+            out[k] = tanh(s)
         }
-        let out = tanh(z6)
 
         // ---- backward pass ----
-        var d6 = clip(-2 * (target - out) * (1 - out * out))
+        // One delta per output; hidden5 delta sums contributions from all 3.
+        var d6 = [Float](repeating: 0, count: NeuralNet.outputSize)
+        for k in 0..<NeuralNet.outputSize {
+            d6[k] = clip(-2 * (targets[k] - out[k]) * (1 - out[k] * out[k]))
+        }
 
         // delta for hidden5 (uses w6 BEFORE update)
         var d5 = [Float](repeating: 0, count: nH5)
-        do {
-            let row = w6[0]
-            for i in 0..<nH5 { d5[i] = clip(d6 * row[i] * (z5[i] > 0 ? 1 : 0)) }
+        for i in 0..<nH5 {
+            var s: Float = 0
+            for k in 0..<NeuralNet.outputSize {
+                s += d6[k] * w6[k][i]
+            }
+            d5[i] = clip(s * (z5[i] > 0 ? 1 : 0))
         }
         // apply output-layer update
-        do {
-            for j in 0..<nH5 { w6[0][j] -= lr * d6 * h5[j] }
-            b6[0] -= lr * d6
+        for k in 0..<NeuralNet.outputSize {
+            for j in 0..<nH5 { w6[k][j] -= lr * d6[k] * h5[j] }
+            b6[k] -= lr * d6[k]
         }
 
         // delta for hidden4 (uses w5 BEFORE update)
@@ -304,7 +337,9 @@ final class NeuralNet: Codable {
             Array(weights.w5[$0..<min($0 + nH4, weights.w5.count)])
         }
         b5 = weights.b5
-        w6 = [weights.w6]
+        w6 = stride(from: 0, to: weights.w6.count, by: nH5).map {
+            Array(weights.w6[$0..<min($0 + nH5, weights.w6.count)])
+        }
         b6 = weights.b6
     }
 }

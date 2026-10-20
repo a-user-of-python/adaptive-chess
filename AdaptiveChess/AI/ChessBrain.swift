@@ -261,43 +261,67 @@ final class ChessBrain {
             }
         }
 
-        // ---- Blunder-focused extra training ----
-        // If the AI keeps falling for the same trap, normal training isn't
-        // punishing it enough: the trap position gets diluted among all
-        // other positions, and 70% of its target is the network's own
-        // (wrong) opinion. So we find blunders explicitly and hammer them.
-        //
-        // A blunder = the AI's eval dropped sharply after its move
-        // (opponent's reply was much better than the AI expected).
-        // For blunders we use pure outcome (λ=0, no bootstrapping the
-        // wrong opinion), higher lr, and more epochs.
+        // ---- Full move-by-move review ----
+        // Don't just punish blunders — go over EVERY AI move like a coach.
+        // For each move, find the best alternative the AI missed. If the gap
+        // between "what I played" and "what I should have played" is real,
+        // train that position toward the correct value. This catches quiet
+        // mistakes (drifting into worse positions) that blunder detection
+        // misses, because it doesn't wait for the opponent to punish you.
         let aiIsWhite = (userColor == .black)
-        let aiSign: Float = aiIsWhite ? 1 : -1  // +1 if AI is White
-        let blunderLr: Float = 0.05
-        let blunderEpochs = 8
-        let blunderThreshold: Float = 0.35
+        let aiSign: Float = aiIsWhite ? 1 : -1
+        let reviewLr: Float = 0.03
+        let reviewThreshold: Float = 0.15
 
-        for idx in positions.indices {
-            // Only the AI's moves (even plies = White, odd plies = Black).
+        // Rebuild the game to get legal moves at each position.
+        let reviewGame = ChessGame()
+        for idx in moves.indices {
             let isAiMove = aiIsWhite ? (idx % 2 == 0) : (idx % 2 == 1)
-            guard isAiMove else { continue }
-            // Need the opponent's reply to exist.
-            guard idx + 2 < positions.count else { continue }
+            if isAiMove {
+                let legal = reviewGame.legalMoves()
+                if !legal.isEmpty {
+                    // Best value achievable from here (1-ply, network's own judgment).
+                    var bestVal: Float = aiIsWhite ? -.infinity : .infinity
+                    for lm in legal {
+                        reviewGame.makeMove(lm)
+                        let v: Float
+                        if reviewGame.isGameOver {
+                            v = terminalValue(reviewGame)
+                        } else {
+                            let h = network.forwardMulti(PositionEncoder.encode(reviewGame))
+                            v = 0.5 * h[0] + 0.3 * h[1] + 0.2 * h[2]
+                        }
+                        reviewGame.undoMove()
+                        if aiIsWhite ? (v > bestVal) : (v < bestVal) {
+                            bestVal = v
+                        }
+                    }
+                    // Value of what the AI actually played.
+                    reviewGame.makeMove(moves[idx])
+                    let playedVal: Float
+                    if reviewGame.isGameOver {
+                        playedVal = terminalValue(reviewGame)
+                    } else {
+                        let h = network.forwardMulti(PositionEncoder.encode(reviewGame))
+                        playedVal = 0.5 * h[0] + 0.3 * h[1] + 0.2 * h[2]
+                    }
+                    reviewGame.undoMove()
 
-            let before = network.forwardMulti(positions[idx])[0]
-            let after = network.forwardMulti(positions[idx + 2])[0]
-            // Swing from the AI's perspective (positive = good for AI).
-            let swing = (after - before) * aiSign
-
-            if swing < -blunderThreshold {
-                // Blunder confirmed. Train all 3 horizons toward the true
-                // outcome — no bootstrapping, just "this was bad."
-                for _ in 0..<blunderEpochs {
-                    network.train(x: positions[idx],
-                                  targets: [finalResult, finalResult, finalResult],
-                                  lr: blunderLr)
+                    // Gap from the AI's perspective. Positive = mistake.
+                    let gap = (bestVal - playedVal) * aiSign
+                    if gap > reviewThreshold {
+                        // Mistake found. Train the position toward what it
+                        // was actually worth. Bigger gap = more epochs.
+                        let epochs = min(10, 2 + Int(gap * 10))
+                        for _ in 0..<epochs {
+                            network.train(x: positions[idx],
+                                          targets: [bestVal, bestVal, bestVal],
+                                          lr: reviewLr)
+                        }
+                    }
                 }
             }
+            reviewGame.makeMove(moves[idx])
         }
     }
 

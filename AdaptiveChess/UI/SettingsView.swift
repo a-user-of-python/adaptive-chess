@@ -22,11 +22,25 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    /// Which engine plays the AI's moves: "network" (the learning neural net)
+    /// or "stockfish" (embedded Stockfish; the network still learns via
+    /// distillation). Persists in UserDefaults.
+    @Published var aiEngine: String {
+        didSet {
+            UserDefaults.standard.set(aiEngine, forKey: Self.aiEngineKey)
+        }
+    }
+
+    var useStockfish: Bool { aiEngine == "stockfish" }
+
     private static let aiLevelKey = "AdaptiveChess.aiLevel"
+    private static let aiEngineKey = "AdaptiveChess.aiEngine"
 
     private init() {
         let saved = UserDefaults.standard.integer(forKey: Self.aiLevelKey)
         self.aiLevel = (1...5).contains(saved) ? saved : 3
+        let savedEngine = UserDefaults.standard.string(forKey: Self.aiEngineKey) ?? "network"
+        self.aiEngine = (savedEngine == "stockfish") ? "stockfish" : "network"
     }
 }
 
@@ -48,12 +62,43 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
+                    engineSection
                     difficultySection
                     contextWindowSection
                 }
                 .padding()
             }
             .navigationTitle("Settings")
+        }
+    }
+
+    // MARK: - AI engine
+
+    private var engineSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("AI Engine")
+                .font(.title)
+                .bold()
+
+            Text("Who plays the computer's moves. Your network keeps learning either way — when Stockfish plays, it teaches your network after every move.")
+                .font(.body)
+                .foregroundColor(.secondary)
+
+            EngineRowView(
+                name: "Your Network",
+                description: "The AI that learns your style. Starts weak, gets personal.",
+                isSelected: !settings.useStockfish
+            ) {
+                settings.aiEngine = "network"
+            }
+
+            EngineRowView(
+                name: "Stockfish",
+                description: "The world-champion engine plays. Your network watches and learns from it.",
+                isSelected: settings.useStockfish
+            ) {
+                settings.aiEngine = "stockfish"
+            }
         }
     }
 
@@ -131,6 +176,42 @@ struct SettingsView: View {
 }
 
 // MARK: - Extracted rows (kept separate so the compiler can type-check quickly)
+
+private struct EngineRowView: View {
+    let name: String
+    let description: String
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(name)
+                        .font(.title3)
+                        .bold()
+                        .foregroundColor(.primary)
+                    Text(description)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(.accentColor)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding()
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(16)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(name) engine")
+    }
+}
 
 private struct DifficultyRowView: View {
     let level: Int

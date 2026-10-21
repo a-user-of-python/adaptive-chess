@@ -575,7 +575,7 @@
 							B15EBCA5EF24F36323C6A8EF /* full_threats.cpp */,
 							71F395D4B2DB090545B5E8A6 /* k32q2.cpp */,
 							B11A358614D48A6E34266FA2 /* pp_3wide.cpp */,
-					);;
+					);
 			name = features;
 			path = features;
 			sourceTree = "<group>";
@@ -596,7 +596,7 @@
 							F76F9544593BCEA2F6B46A0C /* nnue_misc.cpp */,
 							0312CFAC7504F9F74CB164D0 /* features */,
 							E8F2D672EA777565499D13B5 /* layers */,
-					);;
+					);
 			name = nnue;
 			path = nnue;
 			sourceTree = "<group>";
@@ -605,7 +605,7 @@
 			isa = PBXGroup;
 			children = (
 							642E3618E929D2D3973D607F /* tbprobe.cpp */,
-					);;
+					);
 			name = syzygy;
 			path = syzygy;
 			sourceTree = "<group>";
@@ -634,7 +634,7 @@
 							63585F0A4BDDB541F5DBED1F /* ucioption.cpp */,
 							7694DB8B9389D786C6CEDC83 /* nnue */,
 							B97A9A1DDEC75AD8D458A0E2 /* syzygy */,
-					);;
+					);
 			name = Stockfish;
 			path = Stockfish;
 			sourceTree = "<group>";

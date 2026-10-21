@@ -99,9 +99,9 @@ final class StockfishEngine: ObservableObject {
             _ = self.sendAndWait("isready\n", expect: "readyok", timeout: 10)
             // Multithreading: use all performance cores for faster search.
             // Cap at 8 to avoid thermal throttling on phones.
+            // Fire-and-forget: don't block startup if Stockfish is slow to ack.
             let cores = min(ProcessInfo.processInfo.processorCount, 8)
-            _ = self.sendAndWait("setoption name Threads value \(cores)\n",
-                                 expect: "readyok", timeout: 5)
+            sf_send("setoption name Threads value \(cores)\n")
             if self.modelDownloaded {
                 let bigPath = self.nnuePath(self.nnueBigFileName)
                 let smallPath = self.nnuePath(self.nnueSmallFileName)
@@ -272,6 +272,7 @@ final class StockfishEngine: ObservableObject {
         let deadline = Date().addingTimeInterval(Double(movetime) / 1000.0 + 5)
         var buf = [CChar](repeating: 0, count: 8192)
         var output = ""
+        var foundMove: String? = nil
 
         while Date() < deadline {
             let n = buf.withUnsafeMutableBufferPointer { ptr in
@@ -282,12 +283,17 @@ final class StockfishEngine: ObservableObject {
                     String(cString: ptr.baseAddress!)
                 }
                 output += chunk
-                if output.contains("bestmove") { break }
+                // Parse for a valid move (not just substring) to avoid stale output
+                if let bm = parseBestMove(from: output) {
+                    foundMove = bm
+                    // Keep reading a bit more to get the score, but don't wait forever
+                    // The score comes in "info" lines before "bestmove"
+                    break
+                }
             }
         }
-        let move = parseBestMove(from: output)
         let score = parseScore(from: output)
-        return (move, score)
+        return (foundMove, score)
     }
 
     /// Get Stockfish's static evaluation of a FEN position (in centipawns,

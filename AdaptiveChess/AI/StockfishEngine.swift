@@ -244,26 +244,27 @@ final class StockfishEngine: ObservableObject {
         return output
     }
 
-    /// Get Stockfish's best move for a FEN position.
+    /// Get Stockfish's best move for a FEN position, plus the evaluation score
+    /// from the same search (used for distillation — no second search needed).
     /// - Parameter depth: the "foresight" setting (1-3), mapped to a time budget.
-    /// - Returns: UCI move string (e.g. "e2e4"), or nil on failure.
-    func bestMove(fen: String, depth: Int) -> String? {
+    /// - Returns: Tuple of (UCI move string, evaluation score), or (nil, nil) on failure.
+    func bestMove(fen: String, depth: Int) -> (move: String?, score: Float?) {
         guard sf_is_running() != 0 else {
             print("[Stockfish] bestMove: engine not running")
-            return nil
+            return (nil, nil)
         }
 
-        // Map foresight to a time budget — depth-based search is unpredictable
-        // on mobile CPUs. 1s / 3s / 8s keeps moves snappy.
-        let movetime = [1: 1000, 2: 3000, 3: 8000][depth] ?? 2000
+        // Map foresight to a time budget — kept short for snappy play.
+        // 0.5s / 1s / 2s is plenty for a phone game.
+        let movetime = [1: 500, 2: 1000, 3: 2000][depth] ?? 1000
 
         // Stop any stuck search first, then set up the position.
         sf_send("stop\n")
-        Thread.sleep(forTimeInterval: 0.1)
+        Thread.sleep(forTimeInterval: 0.05)
         sf_send("position fen \(fen)\n")
         sf_send("go movetime \(movetime)\n")
 
-        let deadline = Date().addingTimeInterval(Double(movetime) / 1000.0 + 10)
+        let deadline = Date().addingTimeInterval(Double(movetime) / 1000.0 + 5)
         var buf = [CChar](repeating: 0, count: 8192)
         var output = ""
 
@@ -276,12 +277,12 @@ final class StockfishEngine: ObservableObject {
                     String(cString: ptr.baseAddress!)
                 }
                 output += chunk
-                if let bm = parseBestMove(from: output) {
-                    return bm
-                }
+                if output.contains("bestmove") { break }
             }
         }
-        return parseBestMove(from: output)
+        let move = parseBestMove(from: output)
+        let score = parseScore(from: output)
+        return (move, score)
     }
 
     /// Get Stockfish's static evaluation of a FEN position (in centipawns,

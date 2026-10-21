@@ -138,20 +138,23 @@ final class GameViewModel: ObservableObject {
                 }
 
                 // Retry once if the first attempt fails.
+                // bestMove returns (move, score) from a SINGLE search —
+                // the score is used for distillation, no second search needed.
                 var uciMove: String? = nil
+                var sfScore: Float? = nil
                 var chosen: Move? = nil
                 for _ in 0..<2 {
-                    uciMove = StockfishEngine.shared.bestMove(fen: fen, depth: sfLevel)
+                    let result = StockfishEngine.shared.bestMove(fen: fen, depth: sfLevel)
+                    uciMove = result.move
+                    sfScore = result.score
                     if let m = uciMove,
                        let pos = ChessGame(fen: fen),
                        let c = pos.legalMoves().first(where: { $0.uci == m }) {
                         chosen = c
                         break
                     }
-                    Thread.sleep(forTimeInterval: 0.5)
+                    Thread.sleep(forTimeInterval: 0.3)
                 }
-                // Distillation target: Stockfish's evaluation of the position.
-                let sfEval = StockfishEngine.shared.evaluate(fen: fen)
                 let sfReady = StockfishEngine.shared.isReady
 
                 Task { @MainActor [weak self] in
@@ -167,7 +170,8 @@ final class GameViewModel: ObservableObject {
                         // THE NETWORK ALWAYS LEARNS: distill Stockfish's
                         // judgment into the persistent game network. All 3
                         // temporal outputs train toward Stockfish's eval.
-                        if let target = sfEval {
+                        // (Score came from the same search as the move — no extra wait.)
+                        if let target = sfScore {
                             let x = PositionEncoder.encode(self.game)
                             for _ in 0..<3 {
                                 self.gameNetwork.train(x: x,

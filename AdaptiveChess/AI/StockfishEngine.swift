@@ -97,6 +97,11 @@ final class StockfishEngine: ObservableObject {
             }
             _ = self.sendAndWait("uci\n", expect: "uciok", timeout: 10)
             _ = self.sendAndWait("isready\n", expect: "readyok", timeout: 10)
+            // Multithreading: use all performance cores for faster search.
+            // Cap at 8 to avoid thermal throttling on phones.
+            let cores = min(ProcessInfo.processInfo.processorCount, 8)
+            _ = self.sendAndWait("setoption name Threads value \(cores)\n",
+                                 expect: "readyok", timeout: 5)
             if self.modelDownloaded {
                 let bigPath = self.nnuePath(self.nnueBigFileName)
                 let smallPath = self.nnuePath(self.nnueSmallFileName)

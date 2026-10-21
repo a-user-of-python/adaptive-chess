@@ -67,6 +67,118 @@
 			isa = PBXBuildFile;
 			fileRef = C5A9B1DAF1A2BE7A5921C746 /* Assets.xcassets */;
 		};
+		4513420AE7109687FB6A6899 /* attacks.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 89053D44C0D98B5BDB495773 /* attacks.cpp */;
+		};
+		2AA11DC26067591DFBC780D7 /* benchmark.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A48E21766DDA24EC3D8FECC3 /* benchmark.cpp */;
+		};
+		88D896D544F1723C4197FE84 /* bitboard.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 443A81E8D4AACA328A6E59E3 /* bitboard.cpp */;
+		};
+		3267E758D72DBACA024BEB3F /* engine.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 551A0ED29F82395F526878BA /* engine.cpp */;
+		};
+		F659F7A82B9C5A8396EB378A /* evaluate.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 8D825FA4A330C892080B06BD /* evaluate.cpp */;
+		};
+		6C4D7C6D9AA550030C1A5C4A /* memory.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A695164F4EBAB444D00C87A1 /* memory.cpp */;
+		};
+		D31BCF7BD70FE8A48656B1A5 /* misc.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 564C0A316500E338FD596580 /* misc.cpp */;
+		};
+		00AF583538E5ADB8C981CA19 /* movegen.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = DF559BBC5CE836691B4F9652 /* movegen.cpp */;
+		};
+		E916EE69FA0259445A707569 /* movepick.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 1EBC235C400E8D77668931B0 /* movepick.cpp */;
+		};
+		C465D4D25AAF3065B2DD3497 /* position.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = D77472E73433FD06E81CE8DF /* position.cpp */;
+		};
+		DE8732F32FCE3007910E3E12 /* score.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 37E0976CF1951E943CB3C58E /* score.cpp */;
+		};
+		86CE68ACC56C9788C97E7F9B /* search.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = BA3333FE57708E7C7024E02A /* search.cpp */;
+		};
+		238931FE52B00C5B166CF1AD /* sf_wrapper.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 88E323F688BCAD05B22476AC /* sf_wrapper.cpp */;
+		};
+		224E76E1CB4A63FC78DF2B9B /* thread.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = AD47A715342620BBEDC1E1AF /* thread.cpp */;
+		};
+		3AE8089164A4A4642DE63FE7 /* timeman.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 971D40E3AA95943F7EA1A098 /* timeman.cpp */;
+		};
+		790DC10BDB4E0D94CE1B972D /* tt.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 7BD1FCF7011B5404CEAC507F /* tt.cpp */;
+		};
+		D9AA958AB2968C0BC9699825 /* tune.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 175614652CADA633744E0AA4 /* tune.cpp */;
+		};
+		3E7B47780CCD59D870396736 /* uci.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 653C26D35A23F0C16D983C87 /* uci.cpp */;
+		};
+		D8FF37EEF165261C071DCA07 /* ucioption.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 63585F0A4BDDB541F5DBED1F /* ucioption.cpp */;
+		};
+		1A18DAD2269502223A2320A0 /* network.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 4B5620F78807A216FA591BA7 /* network.cpp */;
+		};
+		2DE020F60E47F2DC8017343F /* nnue_accumulator.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = C5CA332C833E54BBC49E18D3 /* nnue_accumulator.cpp */;
+		};
+		0F4221D357FF5734AFE48EBA /* nnue_misc.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = F76F9544593BCEA2F6B46A0C /* nnue_misc.cpp */;
+		};
+		A71199EB5D552C30492C1ADB /* full_threats.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = B15EBCA5EF24F36323C6A8EF /* full_threats.cpp */;
+		};
+		42B27630AE1D45CF0F92884C /* k32q2.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 71F395D4B2DB090545B5E8A6 /* k32q2.cpp */;
+		};
+		C86F18340078F8C016FCF259 /* pp_3wide.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = B11A358614D48A6E34266FA2 /* pp_3wide.cpp */;
+		};
+		3A73B2751999D28AD1DE7FD3 /* tbprobe.cpp in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 642E3618E929D2D3973D607F /* tbprobe.cpp */;
+		};
+		60FD35D8FEECC85D43EFD2DA /* StockfishEngine.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 68992F143289896B0C4AD1CF /* StockfishEngine.swift */;
+		};
+		F8D6C2B1D3CF6B3626F4CC86 /* ModelDownloadView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 6F34E78B5076C95FCF4763D0 /* ModelDownloadView.swift */;
+		};
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -187,6 +299,182 @@
 			path = AdaptiveChess.app;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		89053D44C0D98B5BDB495773 /* attacks.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = attacks.cpp;
+			sourceTree = "<group>";
+		};
+		A48E21766DDA24EC3D8FECC3 /* benchmark.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = benchmark.cpp;
+			sourceTree = "<group>";
+		};
+		443A81E8D4AACA328A6E59E3 /* bitboard.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = bitboard.cpp;
+			sourceTree = "<group>";
+		};
+		551A0ED29F82395F526878BA /* engine.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = engine.cpp;
+			sourceTree = "<group>";
+		};
+		8D825FA4A330C892080B06BD /* evaluate.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = evaluate.cpp;
+			sourceTree = "<group>";
+		};
+		A695164F4EBAB444D00C87A1 /* memory.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = memory.cpp;
+			sourceTree = "<group>";
+		};
+		564C0A316500E338FD596580 /* misc.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = misc.cpp;
+			sourceTree = "<group>";
+		};
+		DF559BBC5CE836691B4F9652 /* movegen.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = movegen.cpp;
+			sourceTree = "<group>";
+		};
+		1EBC235C400E8D77668931B0 /* movepick.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = movepick.cpp;
+			sourceTree = "<group>";
+		};
+		D77472E73433FD06E81CE8DF /* position.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = position.cpp;
+			sourceTree = "<group>";
+		};
+		37E0976CF1951E943CB3C58E /* score.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = score.cpp;
+			sourceTree = "<group>";
+		};
+		BA3333FE57708E7C7024E02A /* search.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = search.cpp;
+			sourceTree = "<group>";
+		};
+		88E323F688BCAD05B22476AC /* sf_wrapper.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = sf_wrapper.cpp;
+			sourceTree = "<group>";
+		};
+		AD47A715342620BBEDC1E1AF /* thread.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = thread.cpp;
+			sourceTree = "<group>";
+		};
+		971D40E3AA95943F7EA1A098 /* timeman.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = timeman.cpp;
+			sourceTree = "<group>";
+		};
+		7BD1FCF7011B5404CEAC507F /* tt.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = tt.cpp;
+			sourceTree = "<group>";
+		};
+		175614652CADA633744E0AA4 /* tune.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = tune.cpp;
+			sourceTree = "<group>";
+		};
+		653C26D35A23F0C16D983C87 /* uci.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = uci.cpp;
+			sourceTree = "<group>";
+		};
+		63585F0A4BDDB541F5DBED1F /* ucioption.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = ucioption.cpp;
+			sourceTree = "<group>";
+		};
+		4B5620F78807A216FA591BA7 /* network.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = network.cpp;
+			sourceTree = "<group>";
+		};
+		C5CA332C833E54BBC49E18D3 /* nnue_accumulator.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = nnue_accumulator.cpp;
+			sourceTree = "<group>";
+		};
+		F76F9544593BCEA2F6B46A0C /* nnue_misc.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = nnue_misc.cpp;
+			sourceTree = "<group>";
+		};
+		B15EBCA5EF24F36323C6A8EF /* full_threats.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = full_threats.cpp;
+			sourceTree = "<group>";
+		};
+		71F395D4B2DB090545B5E8A6 /* k32q2.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = k32q2.cpp;
+			sourceTree = "<group>";
+		};
+		B11A358614D48A6E34266FA2 /* pp_3wide.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = pp_3wide.cpp;
+			sourceTree = "<group>";
+		};
+		642E3618E929D2D3973D607F /* tbprobe.cpp */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = tbprobe.cpp;
+			sourceTree = "<group>";
+		};
+		68992F143289896B0C4AD1CF /* StockfishEngine.swift */ = {
+			isa = PBXFileReference;
+			fileEncoding = 4;
+			lastKnownFileType = sourcecode.swift;
+			path = StockfishEngine.swift;
+			sourceTree = "<group>";
+		};
+		6F34E78B5076C95FCF4763D0 /* ModelDownloadView.swift */ = {
+			isa = PBXFileReference;
+			fileEncoding = 4;
+			lastKnownFileType = sourcecode.swift;
+			path = ModelDownloadView.swift;
+			sourceTree = "<group>";
+		};
+		0034FCA66F3C05FEB1F6E70C /* AdaptiveChess-Bridging-Header.h */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = AdaptiveChess-Bridging-Header.h;
+			sourceTree = "<group>";
+		};
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -216,6 +504,7 @@
 							906F87D4342EE3023515AA2D /* NeuralNet.swift */,
 							A82FD77F765F56A7DDD62141 /* ChessBrain.swift */,
 							FB519A7F278909F556F83579 /* NetworkNarrator.swift */,
+							68992F143289896B0C4AD1CF /* StockfishEngine.swift */,
 			);
 			name = AI;
 			path = AI;
@@ -240,6 +529,7 @@
 							1E825F5B6CDACE262F3035F0 /* SettingsView.swift */,
 							C58F199EEAC3D54ECF737D11 /* NetworkView.swift */,
 							3E96A05C8B4C1F75E2F4EB42 /* ProfileView.swift */,
+							6F34E78B5076C95FCF4763D0 /* ModelDownloadView.swift */,
 			);
 			name = UI;
 			path = UI;
@@ -255,6 +545,8 @@
 							A708C6BB16E1727E5C03DC95 /* UI */,
 							2528E9EE7B4CA25E23CDD855 /* Info.plist */,
 							C5A9B1DAF1A2BE7A5921C746 /* Assets.xcassets */,
+							A5799210CEAC2D80D24BF78F /* Stockfish */,
+							0034FCA66F3C05FEB1F6E70C /* AdaptiveChess-Bridging-Header.h */,
 			);
 			name = AdaptiveChess;
 			path = AdaptiveChess;
@@ -275,6 +567,76 @@
 							370AC03D0101953627E46B8B /* Products */,
 			);
 			name = AdaptiveChess;
+			sourceTree = "<group>";
+		};
+		0312CFAC7504F9F74CB164D0 /* features */ = {
+			isa = PBXGroup;
+			children = (
+							B15EBCA5EF24F36323C6A8EF /* full_threats.cpp */,
+							71F395D4B2DB090545B5E8A6 /* k32q2.cpp */,
+							B11A358614D48A6E34266FA2 /* pp_3wide.cpp */,
+					);;
+			name = features;
+			path = features;
+			sourceTree = "<group>";
+		};
+		E8F2D672EA777565499D13B5 /* layers */ = {
+			isa = PBXGroup;
+			children = (
+					);
+			name = layers;
+			path = layers;
+			sourceTree = "<group>";
+		};
+		7694DB8B9389D786C6CEDC83 /* nnue */ = {
+			isa = PBXGroup;
+			children = (
+							4B5620F78807A216FA591BA7 /* network.cpp */,
+							C5CA332C833E54BBC49E18D3 /* nnue_accumulator.cpp */,
+							F76F9544593BCEA2F6B46A0C /* nnue_misc.cpp */,
+							0312CFAC7504F9F74CB164D0 /* features */,
+							E8F2D672EA777565499D13B5 /* layers */,
+					);;
+			name = nnue;
+			path = nnue;
+			sourceTree = "<group>";
+		};
+		B97A9A1DDEC75AD8D458A0E2 /* syzygy */ = {
+			isa = PBXGroup;
+			children = (
+							642E3618E929D2D3973D607F /* tbprobe.cpp */,
+					);;
+			name = syzygy;
+			path = syzygy;
+			sourceTree = "<group>";
+		};
+		A5799210CEAC2D80D24BF78F /* Stockfish */ = {
+			isa = PBXGroup;
+			children = (
+							89053D44C0D98B5BDB495773 /* attacks.cpp */,
+							A48E21766DDA24EC3D8FECC3 /* benchmark.cpp */,
+							443A81E8D4AACA328A6E59E3 /* bitboard.cpp */,
+							551A0ED29F82395F526878BA /* engine.cpp */,
+							8D825FA4A330C892080B06BD /* evaluate.cpp */,
+							A695164F4EBAB444D00C87A1 /* memory.cpp */,
+							564C0A316500E338FD596580 /* misc.cpp */,
+							DF559BBC5CE836691B4F9652 /* movegen.cpp */,
+							1EBC235C400E8D77668931B0 /* movepick.cpp */,
+							D77472E73433FD06E81CE8DF /* position.cpp */,
+							37E0976CF1951E943CB3C58E /* score.cpp */,
+							BA3333FE57708E7C7024E02A /* search.cpp */,
+							88E323F688BCAD05B22476AC /* sf_wrapper.cpp */,
+							AD47A715342620BBEDC1E1AF /* thread.cpp */,
+							971D40E3AA95943F7EA1A098 /* timeman.cpp */,
+							7BD1FCF7011B5404CEAC507F /* tt.cpp */,
+							175614652CADA633744E0AA4 /* tune.cpp */,
+							653C26D35A23F0C16D983C87 /* uci.cpp */,
+							63585F0A4BDDB541F5DBED1F /* ucioption.cpp */,
+							7694DB8B9389D786C6CEDC83 /* nnue */,
+							B97A9A1DDEC75AD8D458A0E2 /* syzygy */,
+					);;
+			name = Stockfish;
+			path = Stockfish;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -354,7 +716,35 @@
 							01843AA36FEE55E193EAFA26 /* SettingsView.swift */,
 							38AC66DC05F0E861DDBBCB25 /* NetworkView.swift */,
 							BB703DE275951DD242FE5FC1 /* ProfileView.swift */,
-			);
+							4513420AE7109687FB6A6899 /* attacks.cpp in Sources */,
+							2AA11DC26067591DFBC780D7 /* benchmark.cpp in Sources */,
+							88D896D544F1723C4197FE84 /* bitboard.cpp in Sources */,
+							3267E758D72DBACA024BEB3F /* engine.cpp in Sources */,
+							F659F7A82B9C5A8396EB378A /* evaluate.cpp in Sources */,
+							6C4D7C6D9AA550030C1A5C4A /* memory.cpp in Sources */,
+							D31BCF7BD70FE8A48656B1A5 /* misc.cpp in Sources */,
+							00AF583538E5ADB8C981CA19 /* movegen.cpp in Sources */,
+							E916EE69FA0259445A707569 /* movepick.cpp in Sources */,
+							C465D4D25AAF3065B2DD3497 /* position.cpp in Sources */,
+							DE8732F32FCE3007910E3E12 /* score.cpp in Sources */,
+							86CE68ACC56C9788C97E7F9B /* search.cpp in Sources */,
+							238931FE52B00C5B166CF1AD /* sf_wrapper.cpp in Sources */,
+							224E76E1CB4A63FC78DF2B9B /* thread.cpp in Sources */,
+							3AE8089164A4A4642DE63FE7 /* timeman.cpp in Sources */,
+							790DC10BDB4E0D94CE1B972D /* tt.cpp in Sources */,
+							D9AA958AB2968C0BC9699825 /* tune.cpp in Sources */,
+							3E7B47780CCD59D870396736 /* uci.cpp in Sources */,
+							D8FF37EEF165261C071DCA07 /* ucioption.cpp in Sources */,
+							1A18DAD2269502223A2320A0 /* network.cpp in Sources */,
+							2DE020F60E47F2DC8017343F /* nnue_accumulator.cpp in Sources */,
+							0F4221D357FF5734AFE48EBA /* nnue_misc.cpp in Sources */,
+							A71199EB5D552C30492C1ADB /* full_threats.cpp in Sources */,
+							42B27630AE1D45CF0F92884C /* k32q2.cpp in Sources */,
+							C86F18340078F8C016FCF259 /* pp_3wide.cpp in Sources */,
+							3A73B2751999D28AD1DE7FD3 /* tbprobe.cpp in Sources */,
+							60FD35D8FEECC85D43EFD2DA /* StockfishEngine.swift in Sources */,
+							F8D6C2B1D3CF6B3626F4CC86 /* ModelDownloadView.swift in Sources */,
+					);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
@@ -473,6 +863,22 @@
 		FFA9897D268BE2071ADA615E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+							GCC_PRECOMPILE_BRIDGING_HEADER = YES;
+							GCC_PREPROCESSOR_DEFINITIONS = (
+								"$(inherited)",
+								NNUE_EMBEDDING_OFF,
+								NO_PEXT,
+							);
+							HEADER_SEARCH_PATHS = (
+								"$(inherited)",
+								"$(SRCROOT)/AdaptiveChess/Stockfish",
+								"$(SRCROOT)/AdaptiveChess/Stockfish/nnue",
+								"$(SRCROOT)/AdaptiveChess/Stockfish/nnue/features",
+								"$(SRCROOT)/AdaptiveChess/Stockfish/nnue/layers",
+								"$(SRCROOT)/AdaptiveChess/Stockfish/syzygy",
+								"$(SRCROOT)/AdaptiveChess/Stockfish/incbin",
+							);
+							SWIFT_OBJC_BRIDGING_HEADER = "AdaptiveChess/AdaptiveChess-Bridging-Header.h";
 							ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 							CODE_SIGN_STYLE = Automatic;
 							CURRENT_PROJECT_VERSION = 1;
@@ -501,6 +907,22 @@
 		B0FBFAEDB292E38A06BF30AB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+							GCC_PRECOMPILE_BRIDGING_HEADER = YES;
+							GCC_PREPROCESSOR_DEFINITIONS = (
+								"$(inherited)",
+								NNUE_EMBEDDING_OFF,
+								NO_PEXT,
+							);
+							HEADER_SEARCH_PATHS = (
+								"$(inherited)",
+								"$(SRCROOT)/AdaptiveChess/Stockfish",
+								"$(SRCROOT)/AdaptiveChess/Stockfish/nnue",
+								"$(SRCROOT)/AdaptiveChess/Stockfish/nnue/features",
+								"$(SRCROOT)/AdaptiveChess/Stockfish/nnue/layers",
+								"$(SRCROOT)/AdaptiveChess/Stockfish/syzygy",
+								"$(SRCROOT)/AdaptiveChess/Stockfish/incbin",
+							);
+							SWIFT_OBJC_BRIDGING_HEADER = "AdaptiveChess/AdaptiveChess-Bridging-Header.h";
 							ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 							CODE_SIGN_STYLE = Automatic;
 							CURRENT_PROJECT_VERSION = 1;

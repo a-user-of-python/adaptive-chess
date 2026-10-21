@@ -123,37 +123,101 @@ final class GameViewModel: ObservableObject {
         let fen = game.toFEN()
         let level = AppSettings.shared.aiLevel
         let profile = ProfileStore.shared.profile
+        let useSF = AppSettings.shared.useStockfish
 
         let savedWeights = ProfileStore.shared.currentWeights
         DispatchQueue.global(qos: .userInitiated).async {
-            // NOTE: ChessBrain is the AI agent's class name (spec said ChessAI).
-            let network: NeuralNet
-            if let w = savedWeights, let net = NeuralNet(weights: w) {
-                network = net
-            } else {
-                network = NeuralNet() // fresh random weights for new profile
-            }
-            let brain = ChessBrain(level: level, network: network)
-            guard let position = ChessGame(fen: fen) else { return }
-            let move = brain.findBestMove(game: position, profile: profile)
-
-            Task { @MainActor [weak self] in
-                guard let self = self,
-                      self.gameID == id,
-                      !self.recorded else { return }
-                self.aiThinking = false
-                if let move = move {
-                    self.game.makeMove(move)
-                    self.refresh()
-                    self.lastMove = move
-                    self.selectedSquare = nil
-                    // Online learning: one light TD step after the AI's move too.
-                    // Note: the AI moved using a snapshot network; the per-move
-                    // training here applies to the persistent game network.
-                    self.gameBrain.trainOnMove(game: self.game)
+            if useSF {
+                // ---- Stockfish engine ----
+                // Adaptive level 1-5 → Stockfish foresight 1-3 (time budgets).
+                let sfLevel: Int
+                switch level {
+                case 1, 2: sfLevel = 1
+                case 3, 4: sfLevel = 2
+                default: sfLevel = 3
                 }
-                self.updateStatus()
-                _ = self.checkGameOver()
+
+                // Retry once if the first attempt fails.
+                var uciMove: String? = nil
+                var chosen: Move? = nil
+                for _ in 0..<2 {
+                    uciMove = StockfishEngine.shared.bestMove(fen: fen, depth: sfLevel)
+                    if let m = uciMove,
+                       let pos = ChessGame(fen: fen),
+                       let c = pos.legalMoves().first(where: { $0.uci == m }) {
+                        chosen = c
+                        break
+                    }
+                    Thread.sleep(forTimeInterval: 0.5)
+                }
+                // Distillation target: Stockfish's evaluation of the position.
+                let sfEval = StockfishEngine.shared.evaluate(fen: fen)
+                let sfReady = StockfishEngine.shared.isReady
+
+                Task { @MainActor [weak self] in
+                    guard let self = self,
+                          self.gameID == id,
+                          !self.recorded else { return }
+                    self.aiThinking = false
+                    if let move = chosen {
+                        self.game.makeMove(move)
+                        self.refresh()
+                        self.lastMove = move
+                        self.selectedSquare = nil
+                        // THE NETWORK ALWAYS LEARNS: distill Stockfish's
+                        // judgment into the persistent game network. All 3
+                        // temporal outputs train toward Stockfish's eval.
+                        if let target = sfEval {
+                            let x = PositionEncoder.encode(self.game)
+                            for _ in 0..<3 {
+                                self.gameNetwork.train(x: x,
+                                                       targets: [target, target, target],
+                                                       lr: 0.01)
+                            }
+                        }
+                        // Keep the light per-move TD step for temporal consistency.
+                        self.gameBrain.trainOnMove(game: self.game)
+                    } else {
+                        // Stockfish failed — surface it instead of soft-locking.
+                        self.statusText = sfReady
+                            ? "Stockfish didn't return a move. Try again."
+                            : "Stockfish isn't ready yet — wait for setup to finish."
+                        return
+                    }
+                    self.updateStatus()
+                    _ = self.checkGameOver()
+                }
+            } else {
+                // ---- Network engine (original behavior, unchanged) ----
+                // NOTE: ChessBrain is the AI agent's class name (spec said ChessAI).
+                let network: NeuralNet
+                if let w = savedWeights, let net = NeuralNet(weights: w) {
+                    network = net
+                } else {
+                    network = NeuralNet() // fresh random weights for new profile
+                }
+                let brain = ChessBrain(level: level, network: network)
+                guard let position = ChessGame(fen: fen) else { return }
+                let move = brain.findBestMove(game: position, profile: profile)
+
+                Task { @MainActor [weak self] in
+                    guard let self = self,
+                          self.gameID == id,
+                          !self.recorded else { return }
+                    self.aiThinking = false
+                    if let move = move {
+                        self.game.makeMove(move)
+                        self.refresh()
+                        self.lastMove = move
+                        self.selectedSquare = nil
+                        // Online learning: one light TD step after the AI's move too.
+                        // Note: the AI moved using a snapshot network; the per-move
+                        // training here applies to the persistent game network.
+                        self.gameBrain.trainOnMove(game: self.game)
+                    }
+                    self.updateStatus()
+                    _ = self.checkGameOver()
+                }
             }
         }
     }
@@ -165,12 +229,13 @@ final class GameViewModel: ObservableObject {
             statusText = over
             return
         }
+        let engineName = AppSettings.shared.useStockfish ? "Stockfish" : "AI"
         if aiThinking {
-            statusText = "Black (AI) is thinking…"
+            statusText = "Black (\(engineName)) is thinking…"
         } else if game.sideToMove == .white {
             statusText = game.isInCheck(.white) ? "White to move — Check!" : "White to move"
         } else {
-            statusText = game.isInCheck(.black) ? "Black to move — Check!" : "Black (AI) to move"
+            statusText = game.isInCheck(.black) ? "Black to move — Check!" : "Black (\(engineName)) to move"
         }
     }
 

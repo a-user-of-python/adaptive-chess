@@ -33,6 +33,9 @@ static void* engine_thread(void*) {
     // Close unused ends in this thread.
     close(stdin_pipe[0]);
     close(stdout_pipe[1]);
+    // Also close the ends we don't use (main thread uses these).
+    close(stdin_pipe[1]);
+    close(stdout_pipe[0]);
 
     std::cout << engine_info() << std::endl;
 
@@ -43,6 +46,8 @@ static void* engine_thread(void*) {
     auto uci = std::make_unique<UCIEngine>(std::move(cli));
     Tune::init(uci->engine_options());
 
+    // Only mark as running AFTER successful init.
+    // If init crashes, g_running stays false so Swift knows the engine died.
     g_running = true;
     uci->loop();  // blocks reading stdin until "quit"
     g_running = false;
@@ -61,12 +66,20 @@ void sf_init(void) {
         return;
     }
 
-    // Launch engine thread.
-    pthread_create(&g_thread, nullptr, engine_thread, nullptr);
+    // Launch engine thread with a large stack (8MB).
+    // Stockfish's init (Attacks::init, Position::init) uses deep call stacks
+    // and large local tables; the default pthread stack can overflow.
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
+    pthread_create(&g_thread, &attr, engine_thread, nullptr);
+    pthread_attr_destroy(&attr);
     pthread_detach(g_thread);
 
     // Close the ends we don't use in the main thread.
-    // (engine_thread closes its copies after dup2)
+    // Main thread: writes to stdin_pipe[1], reads from stdout_pipe[0].
+    close(stdin_pipe[0]);
+    close(stdout_pipe[1]);
 }
 
 void sf_send(const char* cmd) {

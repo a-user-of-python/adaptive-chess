@@ -97,11 +97,10 @@ final class StockfishEngine: ObservableObject {
             }
             _ = self.sendAndWait("uci\n", expect: "uciok", timeout: 10)
             _ = self.sendAndWait("isready\n", expect: "readyok", timeout: 10)
-            // Multithreading: use all performance cores for faster search.
-            // Cap at 8 to avoid thermal throttling on phones.
-            // Fire-and-forget: don't block startup if Stockfish is slow to ack.
-            let cores = min(ProcessInfo.processInfo.processorCount, 8)
-            sf_send("setoption name Threads value \(cores)\n")
+            // NOTE: Multithreading (setoption Threads) is intentionally NOT used.
+            // The single-threaded engine played moves correctly; enabling Threads
+            // caused the search to hang with zero output ("no_bytes_received").
+            // Single-threaded + short movetime is fast enough for a phone game.
             if self.modelDownloaded {
                 let bigPath = self.nnuePath(self.nnueBigFileName)
                 let smallPath = self.nnuePath(self.nnueSmallFileName)
@@ -263,9 +262,9 @@ final class StockfishEngine: ObservableObject {
         // 0.5s / 1s / 2s is plenty for a phone game.
         let movetime = [1: 500, 2: 1000, 3: 2000][depth] ?? 1000
 
-        // Stop any stuck search first, then set up the position.
-        sf_send("stop\n")
-        Thread.sleep(forTimeInterval: 0.05)
+        // Set up the position and start the search.
+        // (No "stop" — the working version didn't send one, and there's
+        // nothing to stop on the first move.)
         sf_send("position fen \(fen)\n")
         sf_send("go movetime \(movetime)\n")
 

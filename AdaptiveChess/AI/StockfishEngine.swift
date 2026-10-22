@@ -105,10 +105,11 @@ final class StockfishEngine: ObservableObject {
             if self.modelDownloaded {
                 let bigPath = self.nnuePath(self.nnueBigFileName)
                 let smallPath = self.nnuePath(self.nnueSmallFileName)
-                _ = self.sendAndWait("setoption name EvalFile value \(bigPath)\n",
-                                     expect: "readyok", timeout: 5)
-                _ = self.sendAndWait("setoption name EvalFileSmall value \(smallPath)\n",
-                                     expect: "readyok", timeout: 5)
+                // NB: UCI setoption produces NO output — don't wait for readyok
+                // (that burns a 5s timeout per call). Fire-and-forget, then
+                // a single isready to sync.
+                sf_send("setoption name EvalFile value \(bigPath)\n")
+                sf_send("setoption name EvalFileSmall value \(smallPath)\n")
                 _ = self.sendAndWait("isready\n", expect: "readyok", timeout: 10)
             }
             DispatchQueue.main.async { self.isReady = true }
@@ -252,11 +253,10 @@ final class StockfishEngine: ObservableObject {
     /// Get Stockfish's best move for a FEN position, plus the evaluation score
     /// from the same search (used for distillation — no second search needed).
     /// - Parameter depth: the "foresight" setting (1-3), mapped to a time budget.
-    /// - Returns: Tuple of (UCI move string, evaluation score), or (nil, nil) on failure.
-    func bestMove(fen: String, depth: Int) -> (move: String?, score: Float?) {
+    /// - Returns: Tuple of (UCI move string, evaluation score, diagnostic info).
+    func bestMove(fen: String, depth: Int) -> (move: String?, score: Float?, diagnostic: String) {
         guard sf_is_running() != 0 else {
-            print("[Stockfish] bestMove: engine not running")
-            return (nil, nil)
+            return (nil, nil, "engine_not_running")
         }
 
         // Map foresight to a time budget — kept short for snappy play.
@@ -273,12 +273,14 @@ final class StockfishEngine: ObservableObject {
         var buf = [CChar](repeating: 0, count: 8192)
         var output = ""
         var foundMove: String? = nil
+        var bytesReceived = 0
 
         while Date() < deadline {
             let n = buf.withUnsafeMutableBufferPointer { ptr in
                 sf_read(ptr.baseAddress!, Int32(ptr.count), 500)
             }
             if n > 0 {
+                bytesReceived += Int(n)
                 let chunk = buf.withUnsafeBufferPointer { ptr in
                     String(cString: ptr.baseAddress!)
                 }
@@ -286,14 +288,24 @@ final class StockfishEngine: ObservableObject {
                 // Parse for a valid move (not just substring) to avoid stale output
                 if let bm = parseBestMove(from: output) {
                     foundMove = bm
-                    // Keep reading a bit more to get the score, but don't wait forever
-                    // The score comes in "info" lines before "bestmove"
                     break
                 }
             }
         }
         let score = parseScore(from: output)
-        return (foundMove, score)
+        let diag: String
+        if foundMove == nil {
+            if bytesReceived == 0 {
+                diag = "no_bytes_received"
+            } else {
+                // Include first 200 chars of output for debugging
+                let preview = String(output.prefix(200)).replacingOccurrences(of: "\n", with: "|")
+                diag = "bytes=\(bytesReceived) no_bestmove output=\(preview)"
+            }
+        } else {
+            diag = "ok"
+        }
+        return (foundMove, score, diag)
     }
 
     /// Get Stockfish's static evaluation of a FEN position (in centipawns,

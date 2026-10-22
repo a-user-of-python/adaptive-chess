@@ -138,20 +138,26 @@ final class GameViewModel: ObservableObject {
                 }
 
                 // Retry once if the first attempt fails.
-                // bestMove returns (move, score) from a SINGLE search —
+                // bestMove returns (move, score, diagnostic) from a SINGLE search —
                 // the score is used for distillation, no second search needed.
                 var uciMove: String? = nil
                 var sfScore: Float? = nil
+                var sfDiag: String = "not_attempted"
                 var chosen: Move? = nil
                 for _ in 0..<2 {
                     let result = StockfishEngine.shared.bestMove(fen: fen, depth: sfLevel)
                     uciMove = result.move
                     sfScore = result.score
+                    sfDiag = result.diagnostic
                     if let m = uciMove,
                        let pos = ChessGame(fen: fen),
                        let c = pos.legalMoves().first(where: { $0.uci == m }) {
                         chosen = c
                         break
+                    }
+                    // If we got a move but it didn't match legal moves, record that
+                    if uciMove != nil && chosen == nil {
+                        sfDiag = "move_not_legal:\(uciMove ?? "?")"
                     }
                     Thread.sleep(forTimeInterval: 0.3)
                 }
@@ -182,9 +188,9 @@ final class GameViewModel: ObservableObject {
                         // Keep the light per-move TD step for temporal consistency.
                         self.gameBrain.trainOnMove(game: self.game)
                     } else {
-                        // Stockfish failed — surface it instead of soft-locking.
+                        // Stockfish failed — surface the diagnostic instead of soft-locking.
                         self.statusText = sfReady
-                            ? "Stockfish didn't return a move. Try again."
+                            ? "Stockfish: \(sfDiag)"
                             : "Stockfish isn't ready yet — wait for setup to finish."
                         return
                     }

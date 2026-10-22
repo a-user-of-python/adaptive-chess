@@ -111,7 +111,14 @@ final class StockfishEngine: ObservableObject {
                 sf_send("setoption name EvalFileSmall value \(smallPath)\n")
                 _ = self.sendAndWait("isready\n", expect: "readyok", timeout: 10)
             }
-            DispatchQueue.main.async { self.isReady = true }
+            // Only mark ready if the engine actually responded.
+            // (Previously this was set unconditionally, hiding a dead engine.)
+            let readyOutput = self.sendAndWait("isready\n", expect: "readyok", timeout: 10)
+            let actuallyReady = readyOutput.contains("readyok")
+            DispatchQueue.main.async { self.isReady = actuallyReady }
+            if !actuallyReady {
+                print("[Stockfish] Engine did not respond to isready — not marking ready")
+            }
         }
     }
 

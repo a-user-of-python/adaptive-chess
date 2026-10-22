@@ -30,12 +30,10 @@ static void* engine_thread(void*) {
     // Redirect stdin/stdout to our pipes.
     dup2(stdin_pipe[0], STDIN_FILENO);
     dup2(stdout_pipe[1], STDOUT_FILENO);
-    // Close unused ends in this thread.
+    // Close the original FDs (we now have fd 0 and 1).
+    // Do NOT close stdin_pipe[1] / stdout_pipe[0] — the main thread uses those.
     close(stdin_pipe[0]);
     close(stdout_pipe[1]);
-    // Also close the ends we don't use (main thread uses these).
-    close(stdin_pipe[1]);
-    close(stdout_pipe[0]);
 
     std::cout << engine_info() << std::endl;
 
@@ -76,10 +74,11 @@ void sf_init(void) {
     pthread_attr_destroy(&attr);
     pthread_detach(g_thread);
 
-    // Close the ends we don't use in the main thread.
-    // Main thread: writes to stdin_pipe[1], reads from stdout_pipe[0].
-    close(stdin_pipe[0]);
-    close(stdout_pipe[1]);
+    // NOTE: Do NOT close stdin_pipe[0] / stdout_pipe[1] here.
+    // The engine thread needs them for dup2, and there's a race:
+    // if we close before it dups, the engine's stdin/stdout won't be our pipes.
+    // The engine thread closes its unused ends after dup2.
+    // (Leaving our copies open is a harmless 2-FD leak.)
 }
 
 void sf_send(const char* cmd) {
